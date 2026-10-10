@@ -152,6 +152,31 @@ kbd, code {
   border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, .14);
 }
+.palette { flex: none; background: var(--panel); border-bottom: 1px solid var(--line); padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; }
+.pal-groups { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.pal-group { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pal-title { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.pal-empty { font-size: 13px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-weight: 700; padding: 4px 9px; min-width: 38px; cursor: grab; border-color: #b9b29f; }
+.chip:active { cursor: grabbing; }
+.pal-group.borrowed .chip { border-style: dashed; background: #f4efe2; }
+.pal-group.dominants .chip { background: #eaf1ef; }
+.pal-group.others .chip { font-weight: 600; background: transparent; }
+.pal-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.pal-foot #palNew { width: 180px; }
+.pal-foot .chk { display: flex; flex-direction: row; align-items: center; gap: 4px; font-size: 13px; color: var(--ink); }
+#palHint { color: var(--muted); font-size: 12px; }
+button:disabled { opacity: .45; cursor: default; }
+
+/* alvos na folha */
+#pvScroll .c { cursor: cell; border-radius: 2px; }
+#pvScroll .ch[data-cl], #pvScroll .ch[data-cl] * { cursor: grab; }
+#pvScroll .c:hover { background: #e6efec; }
+#pvScroll .c.sel { background: #bfe0d8; box-shadow: 0 0 0 1px var(--accent); }
+#pvScroll .c.over { background: #ffd978; box-shadow: 0 0 0 1px #b88a00; }
+#pvScroll .ch.sel { background: #bfe0d8; box-shadow: 0 0 0 1px var(--accent); border-radius: 2px; }
+
 #pageInfo { margin-left: auto; align-self: center; color: var(--muted); font-size: 12px; }
 .only-mob { display: none; }
 
@@ -242,6 +267,10 @@ kbd, code {
   .only-desk, .pv-tools > label { display: none; }
   .only-mob { display: flex; }
   .more-grid { left: auto; right: 0; }
+  .pal-groups { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  .pal-group { flex: none; }
+  .pal-group .chips { flex-wrap: nowrap; }
+  #palHint { display: none; }
   button, select { padding: 7px 11px; }
 }
 
@@ -249,7 +278,8 @@ kbd, code {
 @page { size: A4; margin: 0; }
 @media print {
   html, body { height: auto; overflow: visible; background: #fff; display: block; }
-  .topbar, .tabs, .list, .editor, .pv-tools, #flow, #toast, #measure { display: none !important; }
+  .topbar, .tabs, .list, .editor, .pv-tools, .palette, #flow, #toast, #measure { display: none !important; }
+  #pvScroll .c, #pvScroll .ch { background: none !important; box-shadow: none !important; }
   .app, .pane.preview, .pv-scroll { display: block !important; height: auto; overflow: visible; padding: 0; margin: 0; background: #fff; }
   #pages { display: block !important; zoom: 1 !important; width: auto; margin: 0; }
   .page { box-shadow: none; margin: 0; break-after: page; height: 296.6mm; }

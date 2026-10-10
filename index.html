@@ -71,6 +71,7 @@
         <li>Seções vão entre colchetes: <code>[Intro]</code>, <code>[Verso 1]</code>, <code>[Refrão]</code>. Escreva <code>[Refrão]</code> de novo, sem nada embaixo, para indicar a repetição.</li>
         <li>Frase com nomes de notas (um trecho de solo, por exemplo): comece a linha com <code>Notas:</code>, como em <code>Notas: mi sol lá si</code> ou <code>Notas: E G A B</code>. Ela acompanha a transposição.</li>
         <li>Com o cursor sobre um acorde, <kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd> move o acorde uma casa.</li>
+        <li>Na folha: <b>arraste um acorde da paleta</b> até a letra, ou clique na letra e depois no acorde. Acordes já colocados também podem ser arrastados; clique em um deles para trocar, mover com <kbd>←</kbd> <kbd>→</kbd> ou apagar com <kbd>Delete</kbd>.</li>
       </ul>
     </details>
 
@@ -139,6 +140,16 @@
         </div>
       </details>
       <span id="pageInfo" class="only-desk"></span>
+    </div>
+    <div class="palette" id="palette" aria-label="Paleta de acordes">
+      <div class="pal-groups" id="palGroups"></div>
+      <div class="pal-foot">
+        <input id="palNew" type="text" placeholder="outro acorde + Enter" aria-label="Adicionar outro acorde à paleta" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <label class="chk"><input id="oTetrads" type="checkbox"> Tétrades</label>
+        <button type="button" id="btnUndo" title="Desfazer a última alteração feita pela folha (Ctrl + Z)">Desfazer</button>
+        <button type="button" id="btnErase" title="Apagar o acorde selecionado (Delete)">Apagar acorde</button>
+        <span id="palHint">Arraste o acorde até a letra, ou clique na letra e depois no acorde.</span>
+      </div>
     </div>
     <div class="pv-scroll" id="pvScroll">
       <div id="pages"></div>

@@ -90,4 +90,42 @@ assert.strictEqual(back.capo, '2');
 assert.strictEqual(M.toChordPro(Object.assign({}, s, { text: back.text })), cho);
 assert(!M.isChordPro('Só uma letra\nsem nada'));
 
+// colocar, trocar, mover e apagar acordes pela folha
+let r = M.setChordAt('Uma linha aqui', 0, 4, 'G');
+assert.strictEqual(r.text, '    G\nUma linha aqui'); assert.strictEqual(r.cl, 0);
+r = M.setChordAt(r.text, 1, 0, 'C');
+assert.strictEqual(r.text, 'C   G\nUma linha aqui');
+r = M.setChordAt(r.text, 1, 4, 'Am7');
+assert.strictEqual(r.text, 'C   Am7\nUma linha aqui');
+r = M.moveChord(r.text, 0, 4, 1, 10);
+assert.strictEqual(r.text, 'C         Am7\nUma linha aqui'); assert.strictEqual(r.col, 10);
+r = M.removeChordAt(r.text, 0, 0);
+assert.strictEqual(r.text, '          Am7\nUma linha aqui');
+r = M.removeChordAt(r.text, 0, 10);
+assert.strictEqual(r.text, 'Uma linha aqui'); assert(r.removedLine);
+// mover para outra linha quando a linha de acordes de origem some
+r = M.moveChord('C\num\ndois', 0, 0, 2, 2);
+assert.strictEqual(r.text, 'um\n  C\ndois');
+// colunas na leitura
+const pc = M.parse('C     G\nCantar agora').sections[0].paras[0][0];
+assert.strictEqual(pc.cl, 0); assert.strictEqual(pc.ln, 1);
+assert.deepStrictEqual(pc.words.reduce((a, w) => a.concat(w), []).map(x => [x.chord, x.col]), [['C', 0], ['G', 6]]);
+
+// campo harmônico
+const names = l => l.map(x => x.name).join(' ');
+let pal = M.palette('C', false);
+assert.strictEqual(names(pal.field), 'C Dm Em F G Am Bº');
+assert.strictEqual(names(pal.borrowed), 'Cm Eb Fm Gm Ab Bb');
+assert.strictEqual(names(pal.dominants), 'A7 B7 C7 D7 E7');
+assert.strictEqual(names(M.palette('C', true).field), 'C7M Dm7 Em7 F7M G7 Am7 Bm7(b5)');
+assert.strictEqual(names(M.palette('E', false).field), 'E F#m G#m A B C#m D#º');
+assert.strictEqual(names(M.palette('Bb', false).field), 'Bb Cm Dm Eb F Gm Aº');
+assert.strictEqual(names(M.palette('F#', false).field), 'F# G#m A#m B C# D#m E#º');
+pal = M.palette('Am', false);
+assert.strictEqual(names(pal.field), 'Am Bº C Dm Em F G');
+assert.strictEqual(names(pal.borrowed), 'E A Bm D Bb');
+assert.strictEqual(M.palette('', false), null);
+pal.field.concat(pal.borrowed, pal.dominants).forEach(x => assert(M.isChord(x.name), x.name));
+assert.deepStrictEqual(M.chordsUsed('C  G/B  Am\nletra\nC  D7(9)'), ['C', 'G/B', 'Am', 'D7(9)']);
+
 console.log('ok — todos os testes passaram');

@@ -193,16 +193,18 @@
     var last = marks[marks.length - 1];
     while (lyric.length < last.col) lyric += ' ';
     var segs = [];
-    if (marks[0].col > 0) segs.push({ chord: '', text: lyric.slice(0, marks[0].col) });
+    if (marks[0].col > 0) segs.push({ chord: '', text: lyric.slice(0, marks[0].col), col: 0 });
     marks.forEach(function (mk, i) {
       var end = i + 1 < marks.length ? marks[i + 1].col : lyric.length;
-      segs.push({ chord: mk.chord, text: lyric.slice(mk.col, end) });
+      segs.push({ chord: mk.chord, text: lyric.slice(mk.col, end), col: mk.col });
     });
     var words = [], cur = [];
     segs.forEach(function (seg) {
-      var parts = seg.text.match(/\S+|\s+/g) || [''];
+      var parts = seg.text.match(/\S+|\s+/g) || [''], at = seg.col;
       parts.forEach(function (p, i) {
-        var piece = { chord: i === 0 ? seg.chord : '', text: p };
+        // col = coluna do pedaço na linha da letra (e do acorde na linha de acordes)
+        var piece = { chord: i === 0 ? seg.chord : '', text: p, col: at };
+        at += p.length;
         if (/^\s+$/.test(p)) {
           if (piece.chord || !cur.length) cur.push(piece);
           else cur[cur.length - 1].text += p;
@@ -250,12 +252,12 @@
       if (t === 'chords') {
         var next = i + 1 < lines.length ? lines[i + 1] : '';
         if (classify(next) === 'lyric') {
-          add({ t: 'pair', words: pairLine(line, next.replace(/\s+$/, '')) });
+          add({ t: 'pair', words: pairLine(line, next.replace(/\s+$/, '')), cl: i, ln: i + 1 });
           i++;
         } else add({ t: 'chords', raw: line });
         continue;
       }
-      add({ t: 'lyric', text: line });
+      add({ t: 'lyric', text: line, ln: i });
     }
     // Seção vazia com o nome de outra já escrita = repetição (ex.: o refrão).
     sections.forEach(function (s) {
@@ -265,6 +267,107 @@
       else if (byName[k]) s.repeatOf = byName[k];
     });
     return { sections: sections };
+  }
+
+  /* ---------- colocar, mover e apagar acordes pela folha ---------- */
+
+  function chordMarks(line) {
+    var marks = [], re = /\S+/g, m;
+    while ((m = re.exec(line || ''))) marks.push({ col: m.index, chord: m[0] });
+    return marks;
+  }
+  function buildChordLine(marks) {
+    var out = '';
+    marks.sort(function (a, b) { return a.col - b.col; }).forEach(function (mk) {
+      var col = mk.col;
+      if (out.length && out.length >= col) col = out.length + 1;
+      while (out.length < col) out += ' ';
+      mk.col = col;
+      out += mk.chord;
+    });
+    return out;
+  }
+  // Põe o acorde sobre a coluna `col` da linha de letra `ln` (troca o que já estiver ali).
+  function setChordAt(text, ln, col, chord) {
+    var lines = normalizeText(text).split('\n');
+    if (ln < 0 || ln >= lines.length) return { text: text, cl: -1, col: col };
+    var cl = ln - 1;
+    if (!(ln > 0 && classify(lines[cl]) === 'chords')) { lines.splice(ln, 0, ''); cl = ln; }
+    var mine = { col: col, chord: chord };
+    var marks = chordMarks(lines[cl]).filter(function (m) { return m.col !== col; });
+    marks.push(mine);
+    lines[cl] = buildChordLine(marks);
+    return { text: lines.join('\n'), cl: cl, col: mine.col };
+  }
+  function removeChordAt(text, cl, col) {
+    var lines = normalizeText(text).split('\n');
+    if (cl < 0 || cl >= lines.length) return { text: text, removedLine: false };
+    var marks = chordMarks(lines[cl]).filter(function (m) { return m.col !== col; });
+    if (marks.length) lines[cl] = buildChordLine(marks); else lines.splice(cl, 1);
+    return { text: lines.join('\n'), removedLine: !marks.length };
+  }
+  function moveChord(text, cl, fromCol, ln, col) {
+    var lines = normalizeText(text).split('\n');
+    var mk = chordMarks(lines[cl]).filter(function (m) { return m.col === fromCol; })[0];
+    if (!mk) return { text: text, cl: cl, col: fromCol };
+    var r = removeChordAt(text, cl, fromCol);
+    if (r.removedLine && cl < ln) ln--;
+    return setChordAt(r.text, ln, col, mk.chord);
+  }
+
+  /* ---------- campo harmônico ---------- */
+
+  function spellDegree(tonicLetter, tonicIdx, steps, semis, flat) {
+    var L = LETTERS[(LETTERS.indexOf(tonicLetter) + steps) % 7];
+    var target = mod12(tonicIdx + semis), d = mod12(target - BASE[L]);
+    if (d > 6) d -= 12;
+    if (Math.abs(d) > 1) return spell(target, flat);
+    return L + (d === 1 ? '#' : d === -1 ? 'b' : '');
+  }
+  // [passos de letra, semitons, tríade, tétrade, grau]
+  var FIELDS = {
+    major: {
+      field: [[0, 0, '', '7M', 'I'], [1, 2, 'm', 'm7', 'IIm'], [2, 4, 'm', 'm7', 'IIIm'], [3, 5, '', '7M', 'IV'],
+        [4, 7, '', '7', 'V'], [5, 9, 'm', 'm7', 'VIm'], [6, 11, 'º', 'm7(b5)', 'VIIº']],
+      borrowed: [[0, 0, 'm', 'm7', 'Im'], [2, 3, '', '7M', 'bIII'], [3, 5, 'm', 'm7', 'IVm'], [4, 7, 'm', 'm7', 'Vm'],
+        [5, 8, '', '7M', 'bVI'], [6, 10, '', '7', 'bVII']],
+      dominants: [[5, 9, '7', '7', 'V7 do IIm'], [6, 11, '7', '7', 'V7 do IIIm'], [0, 0, '7', '7', 'V7 do IV'],
+        [1, 2, '7', '7', 'V7 do V'], [2, 4, '7', '7', 'V7 do VIm']]
+    },
+    minor: {
+      field: [[0, 0, 'm', 'm7', 'Im'], [1, 2, 'º', 'm7(b5)', 'IIº'], [2, 3, '', '7M', 'bIII'], [3, 5, 'm', 'm7', 'IVm'],
+        [4, 7, 'm', 'm7', 'Vm'], [5, 8, '', '7M', 'bVI'], [6, 10, '', '7', 'bVII']],
+      borrowed: [[4, 7, '', '7', 'V'], [0, 0, '', '7M', 'I'], [1, 2, 'm', 'm7', 'IIm'], [3, 5, '', '7M', 'IV'], [1, 1, '', '7M', 'bII']],
+      dominants: [[0, 0, '7', '7', 'V7 do IVm'], [1, 2, '7', '7', 'V7 do Vm'], [2, 3, '7', '7', 'V7 do bVI'], [3, 5, '7', '7', 'V7 do bVII']]
+    }
+  };
+  // Acordes do campo harmônico do tom, empréstimos do tom homônimo e dominantes secundários.
+  function palette(key, tetrads) {
+    var c = parseChord((key || '').trim());
+    if (!c) return null;
+    var minor = /^m(?!aj)/.test(c.quality);
+    var letter = c.root[0], idx = noteIndex(letter, c.root.slice(1));
+    var tonic = spellDegree(letter, idx, 0, 0, false) + (minor ? 'm' : '');
+    var flat = prefersFlat(tonic, 0), def = FIELDS[minor ? 'minor' : 'major'], out = { tonic: tonic, minor: minor };
+    ['field', 'borrowed', 'dominants'].forEach(function (g) {
+      out[g] = def[g].map(function (d) {
+        return { name: spellDegree(letter, idx, d[0], d[1], flat) + (tetrads ? d[3] : d[2]), degree: d[4] };
+      });
+    });
+    return out;
+  }
+  function chordsUsed(text) {
+    var seen = {}, list = [];
+    normalizeText(text).split('\n').forEach(function (line) {
+      if (classify(line) !== 'chords') return;
+      line.trim().split(/\s+/).forEach(function (t) {
+        var c = parseChord(t);
+        if (!c) return;
+        var name = c.root + c.quality + (c.bass ? '/' + c.bass : '');
+        if (!seen[name]) { seen[name] = 1; list.push(name); }
+      });
+    });
+    return list;
   }
 
   /* ---------- ChordPro ---------- */
@@ -355,6 +458,8 @@
     transposeNotes: transposeNotes, renderNotes: renderNotes,
     transposeText: transposeText, transposeKey: transposeKey, prefersFlat: prefersFlat,
     firstChord: firstChord, parse: parse, sectionKind: sectionKind,
+    setChordAt: setChordAt, removeChordAt: removeChordAt, moveChord: moveChord,
+    palette: palette, chordsUsed: chordsUsed,
     toChordPro: toChordPro, fromChordPro: fromChordPro, isChordPro: isChordPro
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
