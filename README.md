@@ -1,0 +1,26 @@
+# Cifrador
+
+Editor de cifras que roda direto no navegador, sem servidor. Você digita a linha de acordes em cima da letra e o Cifrador monta a folha A4 pronta para imprimir, com o acorde preso à letra exata sobre a qual foi digitado.
+
+## Como usar
+
+Abra o `index.html` no navegador, ou publique a pasta pelo GitHub Pages (Settings → Pages → Deploy from a branch → `main` / raiz).
+
+- **Acordes sobre a letra**: a linha de acordes vai em cima da linha da letra.
+- **Seções**: `[Intro]`, `[Verso 1]`, `[Refrão]`, `[Ponte]`. Repita `[Refrão]` sem nada embaixo para indicar a repetição.
+- **Frases com notas** (solo, melodia): comece a linha com `Notas:`, por exemplo `Notas: mi sol lá si` ou `Notas: E G A B`.
+- **Transposição**: botões −½ tom e +½ tom; acordes, notas e o tom acompanham.
+- **Ajuste fino**: com o cursor sobre um acorde, `Alt` + `←` / `→` move o acorde uma casa.
+- **Folha**: A4 em 1 ou 2 colunas, tamanho da letra, margem, cor dos acordes e o botão "Caber em 1 página".
+- **Importar**: letra em `.txt`, cifra em ChordPro (`.cho`) ou backup (`.json`).
+- **Salvar**: as músicas ficam guardadas no navegador. "Salvar arquivo" gera um `.cho` (ChordPro) da música aberta e "Backup" gera um `.json` com todas.
+
+No celular ou tablet a cifra aparece em modo de leitura, com transposição e tamanho da letra.
+
+## Estrutura
+
+- `index.html` — a tela
+- `css/style.css` — aparência, folha A4 e regras de impressão
+- `js/music.js` — acordes, notas, transposição e ChordPro
+- `js/app.js` — lista, editor, paginação e arquivos
+- `tests/music.test.js` — testes do motor musical (`node tests/music.test.js`)

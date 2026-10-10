@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cifrador</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-tab="view">
+
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">♪</span> Cifrador</div>
+  <div class="actions">
+    <button id="btnNew" type="button">Nova música</button>
+    <button id="btnImport" type="button" title="Abrir letra (.txt), cifra ChordPro (.cho) ou backup (.json)">Importar</button>
+    <button id="btnExport" type="button" title="Salvar esta música como arquivo ChordPro">Salvar arquivo</button>
+    <button id="btnBackup" type="button" title="Baixar um arquivo com todas as músicas">Backup</button>
+    <button id="btnPrint" type="button" class="primary">Imprimir / PDF</button>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Telas">
+  <button type="button" data-tab="list">Músicas</button>
+  <button type="button" data-tab="edit">Editar</button>
+  <button type="button" data-tab="view">Cifra</button>
+</nav>
+
+<main class="app">
+
+  <aside class="pane list" aria-label="Músicas">
+    <input id="search" type="search" placeholder="Buscar música…" aria-label="Buscar música">
+    <ul id="songList"></ul>
+  </aside>
+
+  <section class="pane editor" aria-label="Editor">
+    <div class="meta">
+      <label class="f-title">Título <input id="fTitle" type="text" autocomplete="off"></label>
+      <label class="f-artist">Artista <input id="fArtist" type="text" autocomplete="off"></label>
+      <label>Tom <input id="fKey" type="text" autocomplete="off" placeholder="ex.: G"></label>
+      <label>Capotraste <input id="fCapo" type="number" min="0" max="12" placeholder="—"></label>
+      <label>Andamento <input id="fTempo" type="number" min="20" max="300" placeholder="bpm"></label>
+    </div>
+
+    <div class="toolbar">
+      <div class="group" aria-label="Inserir seção">
+        <button type="button" data-insert="[Intro]">Intro</button>
+        <button type="button" data-insert="[Verso]">Verso</button>
+        <button type="button" data-insert="[Refrão]">Refrão</button>
+        <button type="button" data-insert="[Ponte]">Ponte</button>
+        <button type="button" data-insert="Notas: " title="Frase escrita com nomes de notas (solo, melodia)">Notas</button>
+      </div>
+      <div class="group" aria-label="Mover acorde">
+        <button type="button" id="btnNudgeL" title="Mover o acorde sob o cursor uma casa para a esquerda (Alt + ←)">◀ acorde</button>
+        <button type="button" id="btnNudgeR" title="Mover o acorde sob o cursor uma casa para a direita (Alt + →)">acorde ▶</button>
+      </div>
+      <div class="group" aria-label="Transpor">
+        <button type="button" id="btnDown" title="Descer meio tom">−½ tom</button>
+        <button type="button" id="btnUp" title="Subir meio tom">+½ tom</button>
+        <select id="oAcc" aria-label="Acidentes" title="Como escrever os acidentes">
+          <option value="auto">♯/♭ automático</option>
+          <option value="sharp">Sustenidos (♯)</option>
+          <option value="flat">Bemóis (♭)</option>
+        </select>
+      </div>
+    </div>
+
+    <details class="help">
+      <summary>Como escrever</summary>
+      <ul>
+        <li>Digite a <b>linha de acordes em cima da linha da letra</b>. O acorde fica preso à letra que está logo abaixo dele, também na impressão.</li>
+        <li>Seções vão entre colchetes: <code>[Intro]</code>, <code>[Verso 1]</code>, <code>[Refrão]</code>. Escreva <code>[Refrão]</code> de novo, sem nada embaixo, para indicar a repetição.</li>
+        <li>Frase com nomes de notas (um trecho de solo, por exemplo): comece a linha com <code>Notas:</code>, como em <code>Notas: mi sol lá si</code> ou <code>Notas: E G A B</code>. Ela acompanha a transposição.</li>
+        <li>Com o cursor sobre um acorde, <kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd> move o acorde uma casa.</li>
+      </ul>
+    </details>
+
+    <textarea id="text" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"
+      aria-label="Cifra" placeholder="[Verso]&#10;C            G&#10;Digite a letra aqui&#10;"></textarea>
+
+    <div class="editor-foot">
+      <span id="saved">Salvo neste navegador</span>
+      <button type="button" id="btnDelete" class="danger">Excluir música</button>
+    </div>
+  </section>
+
+  <section class="pane preview" aria-label="Folha">
+    <div class="pv-tools">
+      <label>Colunas
+        <select id="oCols"><option value="1">1</option><option value="2">2</option></select>
+      </label>
+      <div class="group stepper" aria-label="Tamanho da letra">
+        <button type="button" id="btnSmaller" title="Diminuir a letra">A−</button>
+        <output id="sizeOut">11 pt</output>
+        <button type="button" id="btnBigger" title="Aumentar a letra">A+</button>
+      </div>
+      <button type="button" id="btnFit" class="only-desk" title="Reduz a letra até a música caber em uma folha">Caber em 1 página</button>
+      <div class="group only-mob" aria-label="Transpor">
+        <button type="button" id="btnDownM">−½</button>
+        <button type="button" id="btnUpM">+½</button>
+      </div>
+      <details class="more">
+        <summary>Mais opções</summary>
+        <div class="more-grid">
+          <label>Fonte
+            <select id="oFont">
+              <option value="sans">Sem serifa</option>
+              <option value="serif">Com serifa</option>
+              <option value="mono">Monoespaçada</option>
+            </select>
+          </label>
+          <label>Cor dos acordes
+            <select id="oColor">
+              <option value="#000000">Preto</option>
+              <option value="#1d4ed8">Azul</option>
+              <option value="#b91c1c">Vermelho</option>
+              <option value="#0f766e">Verde</option>
+            </select>
+          </label>
+          <label>Margem
+            <select id="oMargin">
+              <option value="10">Estreita (10 mm)</option>
+              <option value="15">Normal (15 mm)</option>
+              <option value="20">Larga (20 mm)</option>
+            </select>
+          </label>
+          <label>Repetições
+            <select id="oRepeats">
+              <option value="label">Só o nome da seção</option>
+              <option value="full">Escrever de novo</option>
+            </select>
+          </label>
+          <label>Nomes das notas
+            <select id="oNotes">
+              <option value="typed">Como digitei</option>
+              <option value="solfege">Dó Ré Mi</option>
+              <option value="letters">C D E</option>
+            </select>
+          </label>
+        </div>
+      </details>
+      <span id="pageInfo" class="only-desk"></span>
+    </div>
+    <div class="pv-scroll" id="pvScroll">
+      <div id="pages"></div>
+      <div id="flow" class="cifra"></div>
+    </div>
+  </section>
+
+</main>
+
+<div id="measure" class="cifra" aria-hidden="true"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input id="file" type="file" hidden multiple accept=".txt,.cho,.chopro,.chordpro,.crd,.pro,.json,text/plain,application/json">
+
+<script src="js/music.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
