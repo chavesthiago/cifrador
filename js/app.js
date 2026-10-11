@@ -446,6 +446,7 @@
 
   var stageOn = false, wakeLock = null;
   var KIND_NAMES = { chorus: 1, verse: 1, bridge: 1 };
+  var CHORD_COLORS = ['auto', 'ink', 'blue', 'green', 'red', 'orange', 'purple'];
 
   function isPhone() { return window.matchMedia('(max-width: 899px)').matches; }
   function stagePrefs() {
@@ -454,6 +455,7 @@
       db.stage.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     if (!(db.stage.size >= 12 && db.stage.size <= 34)) db.stage.size = 17;
+    if (CHORD_COLORS.indexOf(db.stage.chord) < 0) db.stage.chord = 'auto';
     return db.stage;
   }
 
@@ -461,6 +463,10 @@
     var song = cur(), prefs = stagePrefs(), stage = $('stage'), body = $('stBody'), nav = $('stNav');
     var keep = body.scrollTop, o = { notes: song.opts.notes, plain: true };
     stage.setAttribute('data-theme', prefs.theme);
+    stage.setAttribute('data-chord', prefs.chord);
+    Array.prototype.forEach.call(document.querySelectorAll('.st-sw'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-c') === prefs.chord);
+    });
     body.style.setProperty('--fs', prefs.size + 'px');
     body.style.setProperty('--cf', FONTS[song.opts.font] || FONTS.sans);
     $('stTitle').textContent = song.title || 'Sem título';
@@ -863,6 +869,12 @@
   function setTheme(t) { stagePrefs().theme = t; save(); renderStage(); }
   $('stLight').addEventListener('click', function () { setTheme('light'); });
   $('stDark').addEventListener('click', function () { setTheme('dark'); });
+  $('stChordColors').addEventListener('click', function (e) {
+    var b = e.target.closest('.st-sw');
+    if (!b) return;
+    stagePrefs().chord = b.getAttribute('data-c');
+    save(); renderStage();
+  });
   function stageSize(d) {
     var p = stagePrefs();
     p.size = Math.min(34, Math.max(12, p.size + d));

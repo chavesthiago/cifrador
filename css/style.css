@@ -266,8 +266,20 @@ button:disabled { opacity: .45; cursor: default; }
 #stage .st-chip.on { background: color-mix(in srgb, var(--k) 22%, transparent); }
 #stage .st-chip.on::after { content: ""; position: absolute; left: 6px; right: 6px; bottom: -9px; height: 3px; border-radius: 2px; background: var(--k); }
 .k-intro { --k: #8a8f98; } .k-verse { --k: #2f80d6; } .k-chorus { --k: #d64545; } .k-bridge { --k: #d0822d; } .k-other { --k: #3f9f55; }
-.st-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px 60vh; color: var(--st-ink); --chord: var(--st-ink); line-height: 1.3; scroll-behavior: auto; }
-#stage[data-theme=dark] .st-body { --chord: #ffd166; }
+/* position: relative faz o offsetTop das seções contar a partir desta área, e não do topo da tela */
+.st-body { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px 60vh; color: var(--st-ink); --chord: var(--c-auto); line-height: 1.3; scroll-behavior: auto; }
+#stage { --c-auto: var(--st-ink); --c-ink: var(--st-ink); --c-blue: #1d4ed8; --c-green: #15803d; --c-red: #b91c1c; --c-orange: #c2410c; --c-purple: #7e22ce; }
+#stage[data-theme=dark] { --c-auto: #ffd166; --c-blue: #7db3ff; --c-green: #6fd28a; --c-red: #ff8a80; --c-orange: #ffab6b; --c-purple: #cf9bff; }
+#stage[data-chord=ink] .st-body { --chord: var(--c-ink); }
+#stage[data-chord=blue] .st-body { --chord: var(--c-blue); }
+#stage[data-chord=green] .st-body { --chord: var(--c-green); }
+#stage[data-chord=red] .st-body { --chord: var(--c-red); }
+#stage[data-chord=orange] .st-body { --chord: var(--c-orange); }
+#stage[data-chord=purple] .st-body { --chord: var(--c-purple); }
+#stage .st-row .st-sw { min-width: 0; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 2px solid var(--st-rule); background: var(--sw); }
+#stage .st-row .st-sw[aria-pressed=true] { border-color: var(--st-bar); box-shadow: 0 0 0 2px var(--st-ink); }
+.st-sw[data-c=auto] { --sw: var(--c-auto); } .st-sw[data-c=ink] { --sw: var(--c-ink); } .st-sw[data-c=blue] { --sw: var(--c-blue); }
+.st-sw[data-c=green] { --sw: var(--c-green); } .st-sw[data-c=red] { --sw: var(--c-red); } .st-sw[data-c=orange] { --sw: var(--c-orange); } .st-sw[data-c=purple] { --sw: var(--c-purple); }
 .st-body > * { max-width: 760px; margin-left: auto; margin-right: auto; }
 .st-info { color: var(--st-muted); font-size: .8em; padding-bottom: .6em; }
 .st-sec { padding-bottom: 1.5em; }
