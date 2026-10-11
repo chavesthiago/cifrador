@@ -11,10 +11,10 @@
     serif: 'Georgia, "Times New Roman", serif',
     mono: 'ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", Menlo, monospace'
   };
-  var DEFAULT_OPTS = { cols: 1, size: 11, color: '#000000', margin: 15, font: 'sans', acc: 'auto', notes: 'typed', repeats: 'label', tetrads: false };
+  var DEFAULT_OPTS = { cols: 1, size: 11, color: '#000000', margin: 15, font: 'sans', acc: 'auto', notes: 'typed', repeats: 'label', tetrads: false, memos: 'show' };
   var EXAMPLE = [
     '[Intro]', 'C  G  Am  F', '',
-    '[Verso 1]',
+    '[Verso 1]', '> Só violão e voz',
     'C               G', 'Abro a janela, vejo o sol',
     'Am              F', 'O dia começa devagar',
     'C               G', 'Pego o violão e a voz',
@@ -27,7 +27,7 @@
     '[Verso 2]',
     'C               G', 'Fecho os olhos, sigo o som',
     'Am              F', 'O tempo passa sem pesar', '',
-    '[Refrão]', ''
+    '[Refrão]', '> Toda a banda, cresce', ''
   ].join('\n');
 
   function $(id) { return document.getElementById(id); }
@@ -124,13 +124,14 @@
   }
 
   function lineEl(l, o) {
+    if (l.t === 'memo') return el('div', 'line memo', l.text);
     if (l.t === 'pair') {
       var line = el('div', 'line pair'), end = 0;
       l.words.forEach(function (w) {
         var word = el('span', 'word');
         w.forEach(function (p) {
           var seg = el('span', 'seg'), ch = el('span', 'ch', p.chord), tx = el('span', 'tx');
-          if (p.chord) {
+          if (p.chord && !o.plain) {
             ch.setAttribute('data-cl', l.cl);
             ch.setAttribute('data-col', p.col);
             ch.draggable = true;
@@ -164,22 +165,42 @@
     return lab;
   }
 
+  // Conteúdo de uma seção repetida, sem as anotações da primeira vez.
+  function repeatParas(s) {
+    return s.repeatOf.paras.map(function (p) { return p.filter(function (l) { return l.t !== 'memo'; }); })
+      .filter(function (p) { return p.length; });
+  }
+
   function buildBlocks(song) {
-    var out = [];
+    var out = [], o = song.opts, showMemos = o.memos !== 'hide';
+    function fill(body, lines) {
+      lines.forEach(function (l) { if (l.t !== 'memo' || showMemos) body.appendChild(lineEl(l, o)); });
+    }
     Music.parse(song.text).sections.forEach(function (s) {
       var cls = 'block' + (Music.sectionKind(s.label) === 'chorus' ? ' chorus' : '');
-      var paras = s.paras;
-      if (s.repeatOf && song.opts.repeats === 'full') paras = s.repeatOf.paras;
+      var paras = s.paras, memos = [];
+      if (s.repeatOf) {               // repetição: nome da seção + anotações próprias
+        memos = Music.sectionMemos(s);
+        paras = o.repeats === 'full' ? repeatParas(s) : [];
+      }
       if (!paras.length) {
-        if (s.label) { var b0 = el('div', 'block'); b0.appendChild(labelEl(s.label, !!s.repeatOf)); out.push(b0); }
+        if (!s.label && !memos.length) return;
+        var b0 = el('div', 'block'), body0 = el('div', 'body');
+        if (s.label) b0.appendChild(labelEl(s.label, !!s.repeatOf));
+        fill(body0, memos);
+        if (body0.firstChild) b0.appendChild(body0);
+        if (b0.firstChild) out.push(b0);
         return;
       }
-      paras.forEach(function (p, pi) {
-        var b = el('div', cls);
-        if (pi === 0 && s.label) b.appendChild(labelEl(s.label));
-        var body = el('div', 'body');
-        p.forEach(function (l) { body.appendChild(lineEl(l, song.opts)); });
-        b.appendChild(body);
+      var first = true;
+      paras.forEach(function (p) {
+        var b = el('div', cls), body = el('div', 'body');
+        if (first) fill(body, memos);
+        fill(body, p);
+        if (!body.firstChild && !(first && s.label)) return;
+        if (first && s.label) b.appendChild(labelEl(s.label));
+        if (body.firstChild) b.appendChild(body);
+        first = false;
         out.push(b);
       });
     });
@@ -277,6 +298,7 @@
     document.title = (song.title ? song.title + (song.artist ? ' - ' + song.artist : '') + ' · ' : '') + 'Cifrador';
     renderPalette();
     applySel();
+    if (stageOn) renderStage();
     fitZoom();
     return pages.length;
   }
@@ -419,6 +441,112 @@
     Array.prototype.forEach.call($('pvScroll').querySelectorAll('.over'), function (n) { n.classList.remove('over'); });
   }
 
+  /* ---------- modo palco: a cifra limpa para tocar pelo celular ---------- */
+
+  var stageOn = false, wakeLock = null;
+  var KIND_NAMES = { chorus: 1, verse: 1, bridge: 1 };
+
+  function isPhone() { return window.matchMedia('(max-width: 899px)').matches; }
+  function stagePrefs() {
+    if (!db.stage) db.stage = {};
+    if (db.stage.theme !== 'light' && db.stage.theme !== 'dark') {
+      db.stage.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    if (!(db.stage.size >= 12 && db.stage.size <= 34)) db.stage.size = 17;
+    return db.stage;
+  }
+
+  function renderStage() {
+    var song = cur(), prefs = stagePrefs(), stage = $('stage'), body = $('stBody'), nav = $('stNav');
+    var keep = body.scrollTop, o = { notes: song.opts.notes, plain: true };
+    stage.setAttribute('data-theme', prefs.theme);
+    body.style.setProperty('--fs', prefs.size + 'px');
+    body.style.setProperty('--cf', FONTS[song.opts.font] || FONTS.sans);
+    $('stTitle').textContent = song.title || 'Sem título';
+    $('stKey').textContent = song.key || '—';
+    $('stKey').hidden = !song.key;
+    $('stLight').setAttribute('aria-pressed', prefs.theme === 'light');
+    $('stDark').setAttribute('aria-pressed', prefs.theme === 'dark');
+    body.textContent = '';
+    nav.textContent = '';
+
+    var info = [];
+    if (song.artist) info.push(song.artist);
+    if (song.capo && song.capo !== '0') info.push('Capotraste na ' + song.capo + 'ª casa');
+    if (song.tempo) info.push(song.tempo + ' bpm');
+    if (info.length) body.appendChild(el('div', 'st-info', info.join('  ·  ')));
+
+    Music.parse(song.text).sections.forEach(function (s, i) {
+      var memos = [], paras = s.paras;
+      if (s.repeatOf) { memos = Music.sectionMemos(s); paras = repeatParas(s); }   // no palco, sempre por extenso
+      if (!s.label && !paras.length) return;
+      var kind = Music.sectionKind(s.label);
+      kind = KIND_NAMES[kind] ? kind : (/^intro/i.test(s.label) ? 'intro' : 'other');
+      var sec = el('section', 'st-sec k-' + kind);
+      sec.id = 'st-sec-' + i;
+      if (s.label) {
+        var abbr = Music.sectionAbbr(s.label), head = el('div', 'st-head');
+        head.appendChild(el('span', 'st-badge', abbr));
+        head.appendChild(el('span', 'st-label', s.label));
+        head.appendChild(el('span', 'st-rule'));
+        sec.appendChild(head);
+        var chipB = el('button', 'st-chip k-' + kind, abbr);
+        chipB.type = 'button';
+        chipB.title = s.label;
+        chipB.setAttribute('aria-label', 'Ir para ' + s.label);
+        chipB.setAttribute('data-target', sec.id);
+        nav.appendChild(chipB);
+      }
+      (paras.length ? [memos.concat(paras[0])].concat(paras.slice(1)) : [memos]).forEach(function (p) {
+        if (!p.length) return;
+        var para = el('div', 'st-para');
+        p.forEach(function (l) { para.appendChild(lineEl(l, o)); });
+        sec.appendChild(para);
+      });
+      body.appendChild(sec);
+    });
+    nav.hidden = !nav.firstChild;
+    body.scrollTop = keep;
+    spyStage();
+  }
+
+  // Marca o atalho da seção que está no topo da tela.
+  function spyStage() {
+    var body = $('stBody'), top = body.scrollTop + 70, current = null;
+    Array.prototype.forEach.call(body.querySelectorAll('.st-sec'), function (sec) {
+      if (sec.offsetTop <= top) current = sec.id;
+    });
+    Array.prototype.forEach.call($('stNav').children, function (b) {
+      var on = b.getAttribute('data-target') === current;
+      if (on && !b.classList.contains('on') && b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'center' });
+      b.classList.toggle('on', on);
+    });
+  }
+
+  function openStage() {
+    if (stageOn) { renderStage(); return; }
+    stageOn = true;
+    document.body.classList.add('stage-on');
+    $('stage').hidden = false;
+    $('stMenu').hidden = true;
+    $('stBody').scrollTop = 0;
+    renderStage();
+    try { history.pushState({ stage: 1 }, ''); } catch (e) { /* sem histórico */ }
+    try {   // mantém a tela acesa enquanto toca
+      if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }, function () {});
+    } catch (e) { /* sem suporte */ }
+  }
+  function closeStage(fromHistory) {
+    if (!stageOn) return;
+    stageOn = false;
+    document.body.classList.remove('stage-on');
+    $('stage').hidden = true;
+    if (wakeLock) { try { wakeLock.release(); } catch (e) { /* já solto */ } wakeLock = null; }
+    if (isPhone()) setTab('list');
+    if (!fromHistory) { try { if (history.state && history.state.stage) history.back(); } catch (e) { /* sem histórico */ } }
+    fitZoom();
+  }
+
   /* ---------- lista ---------- */
 
   function renderList() {
@@ -434,7 +562,7 @@
       b.setAttribute('aria-current', s.id === db.current ? 'true' : 'false');
       b.appendChild(el('span', 't', s.title || 'Sem título'));
       if (s.artist) b.appendChild(el('span', 'a', s.artist));
-      b.addEventListener('click', function () { select(s.id); setTab('view'); });
+      b.addEventListener('click', function () { select(s.id); setTab('view'); if (isPhone()) openStage(); });
       li.appendChild(b);
       ul.appendChild(li);
     });
@@ -446,7 +574,7 @@
     $('fCapo').value = s.capo; $('fTempo').value = s.tempo; $('text').value = s.text;
     $('oCols').value = o.cols; $('oFont').value = o.font; $('oColor').value = o.color;
     $('oMargin').value = o.margin; $('oRepeats').value = o.repeats; $('oNotes').value = o.notes; $('oAcc').value = o.acc;
-    $('oTetrads').checked = !!o.tetrads;
+    $('oTetrads').checked = !!o.tetrads; $('oMemos').value = o.memos;
   }
   function select(id) {
     db.current = id;
@@ -522,7 +650,7 @@
     var ta = $('text'), v = ta.value, pos = ta.selectionStart;
     var ls = v.lastIndexOf('\n', pos - 1) + 1, le = v.indexOf('\n', pos);
     if (le < 0) le = v.length;
-    var isNotes = /:\s$/.test(snippet), emptyLine = !v.slice(ls, le).trim();
+    var isNotes = /\s$/.test(snippet), emptyLine = !v.slice(ls, le).trim();
     var at = emptyLine ? ls : le, endAt = emptyLine ? le : le;
     var prevBlank = ls === 0 || !v.slice(v.lastIndexOf('\n', ls - 2) + 1, ls - 1).trim();
     var lead = emptyLine ? (isNotes || prevBlank ? '' : '\n') : '\n' + (isNotes ? '' : '\n');
@@ -623,7 +751,7 @@
   bindField('fTitle', 'title'); bindField('fArtist', 'artist'); bindField('fKey', 'key');
   bindField('fCapo', 'capo'); bindField('fTempo', 'tempo'); bindField('text', 'text');
   bindOpt('oCols', 'cols', true); bindOpt('oFont', 'font'); bindOpt('oColor', 'color');
-  bindOpt('oMargin', 'margin', true); bindOpt('oRepeats', 'repeats'); bindOpt('oNotes', 'notes'); bindOpt('oAcc', 'acc');
+  bindOpt('oMargin', 'margin', true); bindOpt('oRepeats', 'repeats'); bindOpt('oNotes', 'notes'); bindOpt('oAcc', 'acc'); bindOpt('oMemos', 'memos');
 
   // Depois de digitar ou transpor, o "Desfazer" da folha não pode trazer um texto antigo de volta.
   $('text').addEventListener('input', function () { undoStack.length = 0; applySel(); });
@@ -718,6 +846,33 @@
     if (sel) placeChord(c); else render();
   });
 
+  $('btnStage').addEventListener('click', openStage);
+  $('stBack').addEventListener('click', function () { closeStage(false); });
+  window.addEventListener('popstate', function () { closeStage(true); });
+  $('stMore').addEventListener('click', function () { $('stMenu').hidden = !$('stMenu').hidden; });
+  $('stBody').addEventListener('scroll', spyStage, { passive: true });
+  $('stBody').addEventListener('click', function () { $('stMenu').hidden = true; });
+  $('stNav').addEventListener('click', function (e) {
+    var b = e.target.closest('.st-chip');
+    if (!b) return;
+    var sec = document.getElementById(b.getAttribute('data-target'));
+    $('stMenu').hidden = true;
+    if (sec) $('stBody').scrollTo({ top: Math.max(0, sec.offsetTop - 6), behavior: 'smooth' });
+  });
+  function setTheme(t) { stagePrefs().theme = t; save(); renderStage(); }
+  $('stLight').addEventListener('click', function () { setTheme('light'); });
+  $('stDark').addEventListener('click', function () { setTheme('dark'); });
+  function stageSize(d) {
+    var p = stagePrefs();
+    p.size = Math.min(34, Math.max(12, p.size + d));
+    save(); renderStage();
+  }
+  $('stSmaller').addEventListener('click', function () { stageSize(-1); });
+  $('stBigger').addEventListener('click', function () { stageSize(1); });
+  $('stDown').addEventListener('click', function () { transpose(-1); });
+  $('stUp').addEventListener('click', function () { transpose(1); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && stageOn) closeStage(false); });
+
   $('btnSmaller').addEventListener('click', function () { resize(-0.5); });
   $('btnBigger').addEventListener('click', function () { resize(0.5); });
   $('btnFit').addEventListener('click', fitOnePage);
@@ -759,5 +914,6 @@
   else window.addEventListener('resize', fitZoom);
 
   fillForm(); renderList(); render();
+  if (isPhone()) openStage();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
 })();

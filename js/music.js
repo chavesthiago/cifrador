@@ -22,6 +22,7 @@
   var FILLER_RE = /^(\|+|\|:|:\||%|-+|\/+|x\d+|\d+x|\(x\d+\)|\(\d+x\)|N\.?C\.?|\(|\)|:)$/i;
   var SECTION_RE = /^\s*\[([^\[\]]+)\]\s*$/;
   var NOTES_RE = /^(\s*notas?\s*:)(.*)$/i;
+  var MEMO_RE = /^\s*>\s?(.*)$/;   // anotação para os músicos
   var NOTE_S = /^(d[oó]|r[eé]|mi|f[aá]|sol|l[aá]|si)([#b♯♭]?)([\d']*)$/i;
   var NOTE_L = /^([A-Ga-g])([#b♯♭]?)([\d']*)$/;
   var NOTE_SPLIT = /(\s+|[-–—|,()~>]+)/;
@@ -138,6 +139,7 @@
     if (/^\s*$/.test(line)) return 'blank';
     if (SECTION_RE.test(line)) return 'section';
     if (NOTES_RE.test(line)) return 'notes';
+    if (MEMO_RE.test(line)) return 'memo';
     if (isChordLine(line)) return 'chords';
     return 'lyric';
   }
@@ -227,6 +229,29 @@
     return words;
   }
 
+  function hasContent(s) {
+    return s.paras.some(function (p) { return p.some(function (l) { return l.t !== 'memo'; }); });
+  }
+  function sectionMemos(s) {
+    var out = [];
+    s.paras.forEach(function (p) { p.forEach(function (l) { if (l.t === 'memo') out.push(l); }); });
+    return out;
+  }
+  // Sigla curta para os atalhos de seção: Intro → It, Verso 2 → V2, Refrão → R.
+  function sectionAbbr(label) {
+    var l = (label || '').trim(), low = l.toLowerCase();
+    var num = (/(\d+)\s*$/.exec(l) || [])[1] || '';
+    var base = /^intro/.test(low) ? 'It'
+      : /^pr[eé][- ]?refr/.test(low) ? 'PR'
+      : /^(refr|chorus|coro)/.test(low) ? 'R'
+      : /^(vers|estrofe)/.test(low) ? 'V'
+      : /^(ponte|bridge)/.test(low) ? 'P'
+      : /^solo/.test(low) ? 'So'
+      : /^(final|outro|coda)/.test(low) ? 'F'
+      : (l[0] || '?').toUpperCase() + (/^[a-zà-ú]$/i.test(l[1] || '') ? l[1].toLowerCase() : '');
+    return base + num;
+  }
+
   function sectionKind(label) {
     var l = (label || '').trim().toLowerCase();
     if (/^(refr|chorus|coro)/.test(l)) return 'chorus';
@@ -249,6 +274,7 @@
       if (t === 'blank') { para = null; continue; }
       if (t === 'section') { open(SECTION_RE.exec(line)[1].trim()); continue; }
       if (t === 'notes') { add({ t: 'notes', body: NOTES_RE.exec(line)[2] }); continue; }
+      if (t === 'memo') { add({ t: 'memo', text: MEMO_RE.exec(line)[1] }); continue; }
       if (t === 'chords') {
         var next = i + 1 < lines.length ? lines[i + 1] : '';
         if (classify(next) === 'lyric') {
@@ -263,8 +289,8 @@
     sections.forEach(function (s) {
       var k = s.label.toLowerCase();
       if (!k) return;
-      if (s.paras.length) { if (!byName[k]) byName[k] = s; }
-      else if (byName[k]) s.repeatOf = byName[k];
+      if (hasContent(s)) { if (!byName[k]) byName[k] = s; }
+      else if (byName[k]) s.repeatOf = byName[k];   // pode trazer anotações próprias
     });
     return { sections: sections };
   }
@@ -380,8 +406,9 @@
     parse(song.text).sections.forEach(function (s) {
       var kind = sectionKind(s.label);
       out.push('');
-      if (!s.paras.length) {
+      if (!hasContent(s)) {
         if (s.label) out.push(kind === 'chorus' && /^refrão$/i.test(s.label) ? '{chorus}' : '{comment: ' + s.label + '}');
+        sectionMemos(s).forEach(function (l) { out.push('{ci: ' + l.text + '}'); });
         return;
       }
       if (kind) out.push('{start_of_' + kind + ': ' + s.label + '}');
@@ -395,6 +422,7 @@
             }).join('').replace(/\s+$/, ''));
           } else if (l.t === 'chords') out.push(l.raw.replace(/\S+/g, function (c) { return '[' + c + ']'; }));
           else if (l.t === 'notes') out.push('{comment: Notas:' + l.body + '}');
+          else if (l.t === 'memo') out.push('{ci: ' + l.text + '}');
           else out.push(l.text);
         });
       });
@@ -425,7 +453,8 @@
           var kind = name.slice(9);
           out.push('[' + (label(val) || defaults[kind] || kind) + ']');
         } else if (name === 'chorus') out.push('[' + (label(val) || 'Refrão') + ']');
-        else if (/^(comment|c|ci|cb|comment_italic|comment_box)$/.test(name)) {
+        else if (name === 'ci' || name === 'comment_italic') out.push('> ' + val);
+        else if (/^(comment|c|cb|comment_box)$/.test(name)) {
           out.push(/^notas?\s*:/i.test(val) ? val : '[' + val + ']');
         }
         return;
@@ -460,6 +489,7 @@
     firstChord: firstChord, parse: parse, sectionKind: sectionKind,
     setChordAt: setChordAt, removeChordAt: removeChordAt, moveChord: moveChord,
     palette: palette, chordsUsed: chordsUsed,
+    hasContent: hasContent, sectionMemos: sectionMemos, sectionAbbr: sectionAbbr,
     toChordPro: toChordPro, fromChordPro: fromChordPro, isChordPro: isChordPro
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

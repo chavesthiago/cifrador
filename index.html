@@ -15,6 +15,7 @@
     <button id="btnImport" type="button" title="Abrir letra (.txt), cifra ChordPro (.cho) ou backup (.json)">Importar</button>
     <button id="btnExport" type="button" title="Salvar esta música como arquivo ChordPro">Salvar arquivo</button>
     <button id="btnBackup" type="button" title="Baixar um arquivo com todas as músicas">Backup</button>
+    <button id="btnStage" type="button" title="Cifra limpa para tocar pelo celular, com atalhos de seção">Modo palco</button>
     <button id="btnPrint" type="button" class="primary">Imprimir / PDF</button>
   </div>
 </header>
@@ -48,6 +49,7 @@
         <button type="button" data-insert="[Refrão]">Refrão</button>
         <button type="button" data-insert="[Ponte]">Ponte</button>
         <button type="button" data-insert="Notas: " title="Frase escrita com nomes de notas (solo, melodia)">Notas</button>
+        <button type="button" data-insert="&gt; " title="Anotação ou lembrete para os músicos">Anotação</button>
       </div>
       <div class="group" aria-label="Mover acorde">
         <button type="button" id="btnNudgeL" title="Mover o acorde sob o cursor uma casa para a esquerda (Alt + ←)">◀ acorde</button>
@@ -70,6 +72,7 @@
         <li>Digite a <b>linha de acordes em cima da linha da letra</b>. O acorde fica preso à letra que está logo abaixo dele, também na impressão.</li>
         <li>Seções vão entre colchetes: <code>[Intro]</code>, <code>[Verso 1]</code>, <code>[Refrão]</code>. Escreva <code>[Refrão]</code> de novo, sem nada embaixo, para indicar a repetição.</li>
         <li>Frase com nomes de notas (um trecho de solo, por exemplo): comece a linha com <code>Notas:</code>, como em <code>Notas: mi sol lá si</code> ou <code>Notas: E G A B</code>. Ela acompanha a transposição.</li>
+        <li>Anotação ou lembrete para os músicos: comece a linha com <code>&gt;</code>, como em <code>&gt; Bumbo em colcheia, cresce</code>. Pode ficar logo abaixo do nome de uma seção repetida.</li>
         <li>Com o cursor sobre um acorde, <kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd> move o acorde uma casa.</li>
         <li>Na folha: <b>arraste um acorde da paleta</b> até a letra, ou clique na letra e depois no acorde. Acordes já colocados também podem ser arrastados; clique em um deles para trocar, mover com <kbd>←</kbd> <kbd>→</kbd> ou apagar com <kbd>Delete</kbd>.</li>
       </ul>
@@ -130,6 +133,12 @@
               <option value="full">Escrever de novo</option>
             </select>
           </label>
+          <label>Anotações na folha
+            <select id="oMemos">
+              <option value="show">Mostrar</option>
+              <option value="hide">Ocultar</option>
+            </select>
+          </label>
           <label>Nomes das notas
             <select id="oNotes">
               <option value="typed">Como digitei</option>
@@ -158,6 +167,25 @@
   </section>
 
 </main>
+
+<div id="stage" hidden data-theme="light" aria-label="Modo palco">
+  <header class="st-bar">
+    <button type="button" id="stBack" class="st-icon" aria-label="Voltar">‹</button>
+    <div id="stTitle" class="st-title"></div>
+    <span id="stKey" class="st-key" title="Tom"></span>
+    <button type="button" id="stMore" class="st-icon" aria-label="Opções">⋯</button>
+  </header>
+  <div id="stMenu" class="st-menu" hidden>
+    <div class="st-row"><span>Cores</span>
+      <button type="button" id="stLight">Claro</button><button type="button" id="stDark">Escuro</button></div>
+    <div class="st-row"><span>Letra</span>
+      <button type="button" id="stSmaller" aria-label="Diminuir a letra">A−</button><button type="button" id="stBigger" aria-label="Aumentar a letra">A+</button></div>
+    <div class="st-row"><span>Tom</span>
+      <button type="button" id="stDown" aria-label="Descer meio tom">−½</button><button type="button" id="stUp" aria-label="Subir meio tom">+½</button></div>
+  </div>
+  <nav id="stNav" class="st-nav" aria-label="Seções da música"></nav>
+  <div id="stBody" class="st-body cifra"></div>
+</div>
 
 <div id="measure" class="cifra" aria-hidden="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>

@@ -128,4 +128,20 @@ assert.strictEqual(M.palette('', false), null);
 pal.field.concat(pal.borrowed, pal.dominants).forEach(x => assert(M.isChord(x.name), x.name));
 assert.deepStrictEqual(M.chordsUsed('C  G/B  Am\nletra\nC  D7(9)'), ['C', 'G/B', 'Am', 'D7(9)']);
 
+// anotações para os músicos
+assert.strictEqual(M.classify('> Crescendo'), 'memo');
+const dm = M.parse('[Ponte]\n> Groove nos tons\nC  G\nAtraído\n\n[Ponte]\n> Crescendo\n\n[Ponte]');
+assert.strictEqual(dm.sections[0].paras[0][0].t, 'memo');
+assert.strictEqual(dm.sections[0].paras[0][1].t, 'pair');
+assert.strictEqual(dm.sections[1].repeatOf, dm.sections[0]);
+assert.deepStrictEqual(M.sectionMemos(dm.sections[1]).map(l => l.text), ['Crescendo']);
+assert.strictEqual(dm.sections[2].repeatOf, dm.sections[0]);
+assert.strictEqual(M.transposeText('> Em G, cresce\nC', 2, false), '> Em G, cresce\nD');
+const sm = { title: 'T', artist: '', key: '', capo: '', tempo: '', text: '[Ponte]\n> Groove\nC   G\nAtraído\n\n[Ponte]\n> Crescendo\n' };
+const chm = M.toChordPro(sm);
+assert(/\{ci: Groove\}/.test(chm) && /\{ci: Crescendo\}/.test(chm), chm);
+assert.strictEqual(M.toChordPro(Object.assign({}, sm, { text: M.fromChordPro(chm).text })), chm);
+[['Intro', 'It'], ['Verso 1', 'V1'], ['Verso', 'V'], ['Refrão', 'R'], ['Refrão 1', 'R1'], ['Ponte', 'P'], ['Pré-refrão', 'PR'], ['Tom', 'To'], ['Solo', 'So'], ['Final', 'F'], ['A', 'A']]
+  .forEach(([a, b]) => assert.strictEqual(M.sectionAbbr(a), b, a));
+
 console.log('ok — todos os testes passaram');
