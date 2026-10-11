@@ -123,7 +123,17 @@
     }
   }
 
+  // Linha com anotação no fim dos acordes: a anotação fica à direita, na altura dos acordes.
   function lineEl(l, o) {
+    var core = lineCore(l, o);
+    if (!l.memo || l.t === 'memo' || o.memos === 'hide') return core;
+    var row = el('div', 'line-row');
+    row.appendChild(core);
+    row.appendChild(el('span', 'memo side', l.memo));
+    return row;
+  }
+
+  function lineCore(l, o) {
     if (l.t === 'memo') return el('div', 'line memo', l.text);
     if (l.t === 'pair') {
       var line = el('div', 'line pair'), end = 0;
@@ -634,8 +644,8 @@
     if (le < 0) le = v.length;
     var line = v.slice(ls, le), col = pos - ls;
     if (Music.classify(line) !== 'chords') return false;
-    var re = /\S+/g, m, tok = null;
-    while ((m = re.exec(line))) if (m.index <= col && col <= m.index + m[0].length) { tok = m; break; }
+    var re = /\S+/g, m, tok = null, limit = Music.chordPart(line).length;   // não mexe na anotação
+    while ((m = re.exec(line))) if (m.index < limit && m.index <= col && col <= m.index + m[0].length) { tok = m; break; }
     if (!tok) return false;
     var a = tok.index, b = a + tok[0].length, before = line.slice(0, a), after = line.slice(b);
     if (dir > 0) {

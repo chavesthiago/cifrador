@@ -144,4 +144,21 @@ assert.strictEqual(M.toChordPro(Object.assign({}, sm, { text: M.fromChordPro(chm
 [['Intro', 'It'], ['Verso 1', 'V1'], ['Verso', 'V'], ['Refrão', 'R'], ['Refrão 1', 'R1'], ['Ponte', 'P'], ['Pré-refrão', 'PR'], ['Tom', 'To'], ['Solo', 'So'], ['Final', 'F'], ['A', 'A']]
   .forEach(([a, b]) => assert.strictEqual(M.sectionAbbr(a), b, a));
 
+// anotação no fim da linha de acordes
+const im = 'Bm        G     A   Bm7 >vem crescendo\nE deixo a música entrar';
+assert.strictEqual(M.classify(im.split('\n')[0]), 'chords');
+const pim = M.parse(im).sections[0].paras[0][0];
+assert.strictEqual(pim.t, 'pair'); assert.strictEqual(pim.memo, 'vem crescendo');
+assert.deepStrictEqual(pim.words.reduce((a, w) => a.concat(w), []).filter(x => x.chord).map(x => x.chord), ['Bm', 'G', 'A', 'Bm7']);
+assert.strictEqual(M.transposeText(im, 2, false).split('\n')[0], 'C#m       A     B   C#m7 >vem crescendo');
+assert.strictEqual(M.transposeText('A  E > em A, cresce', 2, false), 'B  F# > em A, cresce');
+assert.deepStrictEqual(M.chordsUsed('C  G > toca Am e Em'), ['C', 'G']);
+assert.strictEqual(M.parse('C  G > só teclado').sections[0].paras[0][0].memo, 'só teclado');
+r = M.setChordAt('C > forte\nletra aqui', 1, 6, 'G');
+assert.strictEqual(r.text, 'C     G > forte\nletra aqui');
+r = M.removeChordAt('C > forte\nletra', 0, 0);
+assert.strictEqual(r.text, '> forte\nletra'); assert(!r.removedLine);
+assert.strictEqual(M.classify('Sol > mar'), 'lyric');
+assert(/\{ci: vem crescendo\}\n\[Bm\]/.test(M.toChordPro({ title: '', artist: '', key: '', capo: '', tempo: '', text: im })));
+
 console.log('ok — todos os testes passaram');

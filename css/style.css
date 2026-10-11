@@ -225,6 +225,10 @@ button:disabled { opacity: .45; cursor: default; }
 .cifra .lyric { white-space: pre-wrap; }
 .cifra .notes { white-space: pre-wrap; font-style: italic; font-weight: 600; }
 .cifra .memo { text-align: right; font-size: .85em; color: #555; white-space: pre-wrap; }
+.cifra .line-row { display: flex; align-items: flex-start; gap: 1em; }
+.cifra .line-row > .line { flex: 1; min-width: 0; }
+.cifra .memo.side { flex: none; max-width: 45%; }
+.st-body .memo.side { padding-top: .35em; }
 .cifra .notes::before { content: "♪ "; font-style: normal; }
 
 /* ---------- modo palco ---------- */

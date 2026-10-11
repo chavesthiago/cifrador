@@ -67,6 +67,27 @@
     return chords > 0;
   }
 
+  // Anotação no fim da linha de acordes: "Bm  G  A  Bm7 > vem crescendo".
+  function splitChordMemo(line) {
+    var i = line.indexOf('>');
+    if (i <= 0 || !isChordLine(line.slice(0, i))) return null;
+    return { chords: line.slice(0, i).replace(/\s+$/, ''), memo: line.slice(i + 1).trim(), tail: line.slice(i), col: i };
+  }
+  function chordPart(line) {
+    var sp = splitChordMemo(line);
+    return sp ? sp.chords : line;
+  }
+  // Aplica fn só aos acordes e devolve a linha com a anotação de volta no lugar.
+  function mapChordPart(line, fn) {
+    var sp = splitChordMemo(line);
+    if (!sp) return fn(line);
+    var out = fn(sp.chords);
+    if (!out.trim()) return sp.tail;
+    var col = out.length >= sp.col ? out.length + 1 : sp.col;
+    while (out.length < col) out += ' ';
+    return out + sp.tail;
+  }
+
   function transposeChord(tok, n, flat) {
     var c = parseChord(tok);
     if (!c) return tok;
@@ -140,7 +161,7 @@
     if (SECTION_RE.test(line)) return 'section';
     if (NOTES_RE.test(line)) return 'notes';
     if (MEMO_RE.test(line)) return 'memo';
-    if (isChordLine(line)) return 'chords';
+    if (isChordLine(line) || splitChordMemo(line)) return 'chords';
     return 'lyric';
   }
 
@@ -152,7 +173,7 @@
     var lines = normalizeText(text).split('\n');
     for (var i = 0; i < lines.length; i++) {
       if (classify(lines[i]) !== 'chords') continue;
-      var toks = lines[i].trim().split(/\s+/);
+      var toks = chordPart(lines[i]).trim().split(/\s+/);
       for (var k = 0; k < toks.length; k++) {
         var c = parseChord(toks[k]);
         if (c) return c.root + (/^m(?!aj)/.test(c.quality) ? 'm' : '');
@@ -178,7 +199,7 @@
   function transposeText(text, n, flat) {
     return normalizeText(text).split('\n').map(function (line) {
       var t = classify(line);
-      if (t === 'chords') return transposeChordLine(line, n, flat);
+      if (t === 'chords') return mapChordPart(line, function (c) { return transposeChordLine(c, n, flat); });
       if (t === 'notes') {
         var m = NOTES_RE.exec(line);
         return m[1] + transposeNotes(m[2], n, flat);
@@ -277,10 +298,11 @@
       if (t === 'memo') { add({ t: 'memo', text: MEMO_RE.exec(line)[1] }); continue; }
       if (t === 'chords') {
         var next = i + 1 < lines.length ? lines[i + 1] : '';
+        var sp = splitChordMemo(line), cline = sp ? sp.chords : line, memo = sp ? sp.memo : '';
         if (classify(next) === 'lyric') {
-          add({ t: 'pair', words: pairLine(line, next.replace(/\s+$/, '')), cl: i, ln: i + 1 });
+          add({ t: 'pair', words: pairLine(cline, next.replace(/\s+$/, '')), cl: i, ln: i + 1, memo: memo });
           i++;
-        } else add({ t: 'chords', raw: line });
+        } else add({ t: 'chords', raw: cline, memo: memo });
         continue;
       }
       add({ t: 'lyric', text: line, ln: i });
@@ -320,21 +342,28 @@
     var cl = ln - 1;
     if (!(ln > 0 && classify(lines[cl]) === 'chords')) { lines.splice(ln, 0, ''); cl = ln; }
     var mine = { col: col, chord: chord };
-    var marks = chordMarks(lines[cl]).filter(function (m) { return m.col !== col; });
-    marks.push(mine);
-    lines[cl] = buildChordLine(marks);
+    lines[cl] = mapChordPart(lines[cl], function (c) {
+      var marks = chordMarks(c).filter(function (m) { return m.col !== col; });
+      marks.push(mine);
+      return buildChordLine(marks);
+    });
     return { text: lines.join('\n'), cl: cl, col: mine.col };
   }
   function removeChordAt(text, cl, col) {
     var lines = normalizeText(text).split('\n');
     if (cl < 0 || cl >= lines.length) return { text: text, removedLine: false };
-    var marks = chordMarks(lines[cl]).filter(function (m) { return m.col !== col; });
-    if (marks.length) lines[cl] = buildChordLine(marks); else lines.splice(cl, 1);
-    return { text: lines.join('\n'), removedLine: !marks.length };
+    var left = 0, keep = !!splitChordMemo(lines[cl]);   // com anotação, a linha fica mesmo sem acordes
+    var res = mapChordPart(lines[cl], function (c) {
+      var marks = chordMarks(c).filter(function (m) { return m.col !== col; });
+      left = marks.length;
+      return buildChordLine(marks);
+    });
+    if (left || keep) lines[cl] = res; else lines.splice(cl, 1);
+    return { text: lines.join('\n'), removedLine: !left && !keep };
   }
   function moveChord(text, cl, fromCol, ln, col) {
     var lines = normalizeText(text).split('\n');
-    var mk = chordMarks(lines[cl]).filter(function (m) { return m.col === fromCol; })[0];
+    var mk = chordMarks(chordPart(lines[cl])).filter(function (m) { return m.col === fromCol; })[0];
     if (!mk) return { text: text, cl: cl, col: fromCol };
     var r = removeChordAt(text, cl, fromCol);
     if (r.removedLine && cl < ln) ln--;
@@ -386,7 +415,7 @@
     var seen = {}, list = [];
     normalizeText(text).split('\n').forEach(function (line) {
       if (classify(line) !== 'chords') return;
-      line.trim().split(/\s+/).forEach(function (t) {
+      chordPart(line).trim().split(/\s+/).forEach(function (t) {
         var c = parseChord(t);
         if (!c) return;
         var name = c.root + c.quality + (c.bass ? '/' + c.bass : '');
@@ -416,6 +445,7 @@
       s.paras.forEach(function (p, pi) {
         if (pi) out.push('');
         p.forEach(function (l) {
+          if (l.memo) out.push('{ci: ' + l.memo + '}');
           if (l.t === 'pair') {
             out.push(l.words.map(function (w) {
               return w.map(function (x) { return (x.chord ? '[' + x.chord + ']' : '') + x.text; }).join('');
@@ -489,7 +519,7 @@
     firstChord: firstChord, parse: parse, sectionKind: sectionKind,
     setChordAt: setChordAt, removeChordAt: removeChordAt, moveChord: moveChord,
     palette: palette, chordsUsed: chordsUsed,
-    hasContent: hasContent, sectionMemos: sectionMemos, sectionAbbr: sectionAbbr,
+    chordPart: chordPart, hasContent: hasContent, sectionMemos: sectionMemos, sectionAbbr: sectionAbbr,
     toChordPro: toChordPro, fromChordPro: fromChordPro, isChordPro: isChordPro
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
