@@ -282,6 +282,7 @@
   }
 
   function render() {
+    clearTimeout(renderTimer);   // um redesenho agendado trocaria os elementos no meio de um arrasto
     var song = cur(), o = song.opts;
     var pages = paginate(song), box = $('pages');
     box.textContent = '';
@@ -313,7 +314,7 @@
   var renderTimer = null;
   function renderSoon() {
     clearTimeout(renderTimer);
-    renderTimer = setTimeout(render, 120);
+    renderTimer = setTimeout(function () { if (drag) renderSoon(); else render(); }, 120);
   }
 
   /* ---------- paleta de acordes e edição pela folha ---------- */
