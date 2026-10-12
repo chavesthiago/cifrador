@@ -337,7 +337,7 @@ body.stage-on > .topbar, body.stage-on > .tabs, body.stage-on > .app { visibilit
   .only-desk, .pv-tools > label { display: none; }
   .only-mob { display: flex; }
   .more-grid { left: auto; right: 0; }
-  /* no celular, mover acorde, transposição e ajuda ficam atrás do botão "Mais" */
+  /* no celular, artista, tom, capotraste, andamento, mover acorde, transposição e ajuda ficam atrás do botão "Mais" */
   body:not(.tools-open) .extra-tool { display: none; }
   #btnTools[aria-expanded=true] { border-color: var(--accent); color: var(--accent); }
   .pal-groups { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
