@@ -50,12 +50,13 @@
         <button type="button" data-insert="[Ponte]">Ponte</button>
         <button type="button" data-insert="Notas: " title="Frase escrita com nomes de notas (solo, melodia)">Notas</button>
         <button type="button" data-insert="&gt; " title="Anotação ou lembrete para os músicos">Anotação</button>
+        <button type="button" id="btnTools" class="only-mob" aria-expanded="false" aria-controls="extraTools">Mais ▾</button>
       </div>
-      <div class="group" aria-label="Mover acorde">
+      <div class="group extra-tool" aria-label="Mover acorde">
         <button type="button" id="btnNudgeL" title="Mover o acorde sob o cursor uma casa para a esquerda (Alt + ←)">◀ acorde</button>
         <button type="button" id="btnNudgeR" title="Mover o acorde sob o cursor uma casa para a direita (Alt + →)">acorde ▶</button>
       </div>
-      <div class="group" aria-label="Transpor">
+      <div class="group extra-tool" aria-label="Transpor">
         <button type="button" id="btnDown" title="Descer meio tom">−½ tom</button>
         <button type="button" id="btnUp" title="Subir meio tom">+½ tom</button>
         <select id="oAcc" aria-label="Acidentes" title="Como escrever os acidentes">
@@ -66,7 +67,7 @@
       </div>
     </div>
 
-    <details class="help">
+    <details class="help extra-tool">
       <summary>Como escrever</summary>
       <ul>
         <li>Digite a <b>linha de acordes em cima da linha da letra</b>. O acorde fica preso à letra que está logo abaixo dele, também na impressão.</li>

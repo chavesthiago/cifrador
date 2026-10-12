@@ -863,6 +863,11 @@
     if (sel) placeChord(c); else render();
   });
 
+  $('btnTools').addEventListener('click', function () {
+    var open = document.body.classList.toggle('tools-open');
+    this.setAttribute('aria-expanded', open);
+    this.textContent = open ? 'Menos ▴' : 'Mais ▾';
+  });
   $('btnStage').addEventListener('click', openStage);
   $('stBack').addEventListener('click', function () { closeStage(false); });
   window.addEventListener('popstate', function () { closeStage(true); });
