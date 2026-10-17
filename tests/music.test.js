@@ -161,4 +161,9 @@ assert.strictEqual(r.text, '> forte\nletra'); assert(!r.removedLine);
 assert.strictEqual(M.classify('Sol > mar'), 'lyric');
 assert(/\{ci: vem crescendo\}\n\[Bm\]/.test(M.toChordPro({ title: '', artist: '', key: '', capo: '', tempo: '', text: im })));
 
+// linhas em branco viram respiro proporcional
+const gp = M.parse('[Verso]\nlinha 1\n\nlinha 2\n\n\n\nlinha 3').sections[0].paras;
+assert.deepStrictEqual(gp.map(p => p.gap), [0, 1, 3]);
+assert.strictEqual(M.parse('[A]\n\n\nx').sections[0].paras[0].gap, 0);
+
 console.log('ok — todos os testes passaram');

@@ -283,16 +283,18 @@
 
   function parse(text) {
     var lines = normalizeText(text).split('\n');
-    var sections = [], sec = null, para = null, byName = {};
-    function open(label) { sec = { label: label, paras: [], repeatOf: null }; sections.push(sec); para = null; }
+    var sections = [], sec = null, para = null, byName = {}, blanks = 0;
+    function open(label) { sec = { label: label, paras: [], repeatOf: null }; sections.push(sec); para = null; blanks = 0; }
+    // gap: quantas linhas em branco vieram antes do parágrafo (cada Enter vira um respiro)
     function add(obj) {
       if (!sec) open('');
-      if (!para) { para = []; sec.paras.push(para); }
+      if (!para) { para = []; para.gap = sec.paras.length ? blanks : 0; sec.paras.push(para); }
+      blanks = 0;
       para.push(obj);
     }
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].replace(/\s+$/, ''), t = classify(line);
-      if (t === 'blank') { para = null; continue; }
+      if (t === 'blank') { para = null; blanks++; continue; }
       if (t === 'section') { open(SECTION_RE.exec(line)[1].trim()); continue; }
       if (t === 'notes') { add({ t: 'notes', body: NOTES_RE.exec(line)[2] }); continue; }
       if (t === 'memo') { add({ t: 'memo', text: MEMO_RE.exec(line)[1] }); continue; }

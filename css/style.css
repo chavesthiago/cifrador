@@ -204,7 +204,7 @@ button:disabled { opacity: .45; cursor: default; }
 .cifra .hd .artist { font-size: 1.05em; color: #333; }
 .cifra .hd .info { font-size: .9em; color: #333; margin-top: .25em; }
 .cifra .hd .info b { color: #000; }
-.cifra .block { padding-bottom: .95em; break-inside: avoid; }
+.cifra .block { padding-bottom: 1.22em; break-inside: avoid; }
 .cifra .block.part { padding-bottom: 0; }
 .cifra .sec-label { font-weight: 700; font-size: .82em; letter-spacing: .07em; text-transform: uppercase; padding-bottom: .2em; }
 .cifra .sec-label .rep { font-weight: 400; text-transform: none; letter-spacing: 0; }
@@ -291,7 +291,7 @@ button:disabled { opacity: .45; cursor: default; }
 .st-badge { width: 1.9em; height: 1.9em; font-size: .72em; }
 .st-label { font-size: .82em; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .st-rule { flex: 1; height: 1px; background: var(--st-rule); }
-.st-para { padding-bottom: .9em; }
+.st-para { padding-bottom: 1.3em; }
 .st-body .memo { color: var(--st-muted); font-size: .8em; }
 .st-body .ch { padding-top: .25em; }
 body.stage-on > .topbar, body.stage-on > .tabs, body.stage-on > .app { visibility: hidden; }

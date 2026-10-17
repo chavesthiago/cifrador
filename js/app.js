@@ -177,8 +177,11 @@
 
   // Conteúdo de uma seção repetida, sem as anotações da primeira vez.
   function repeatParas(s) {
-    return s.repeatOf.paras.map(function (p) { return p.filter(function (l) { return l.t !== 'memo'; }); })
-      .filter(function (p) { return p.length; });
+    return s.repeatOf.paras.map(function (p) {
+      var q = p.filter(function (l) { return l.t !== 'memo'; });
+      q.gap = p.gap;
+      return q;
+    }).filter(function (p) { return p.length; });
   }
 
   function buildBlocks(song) {
@@ -210,6 +213,8 @@
         if (!body.firstChild && !(first && s.label)) return;
         if (first && s.label) b.appendChild(labelEl(s.label));
         if (body.firstChild) b.appendChild(body);
+        // cada linha em branco a mais no texto vira uma linha de espaço na folha
+        if (!first && p.gap > 1) b.style.paddingTop = ((p.gap - 1) * 1.22) + 'em';
         first = false;
         out.push(b);
       });
@@ -517,6 +522,7 @@
       (paras.length ? [memos.concat(paras[0])].concat(paras.slice(1)) : [memos]).forEach(function (p) {
         if (!p.length) return;
         var para = el('div', 'st-para');
+        if (p.gap > 1) para.style.paddingTop = ((p.gap - 1) * 1.3) + 'em';
         p.forEach(function (l) { para.appendChild(lineEl(l, o)); });
         sec.appendChild(para);
       });
