@@ -20,7 +20,8 @@
 
   var CHORD_RE = /^([A-G][#b♯♭]?)((?:maj|min|dim|aug|sus|add|m|M|º|°|ø|\+|-|\d+|[#b♯♭]\d+|\(|\)|,|\/\d+)*)(?:\/([A-G][#b♯♭]?))?$/;
   var FILLER_RE = /^(\|+|\|:|:\||%|-+|\/+|x\d+|\d+x|\(x\d+\)|\(\d+x\)|N\.?C\.?|\(|\)|:)$/i;
-  var SECTION_RE = /^\s*\[([^\[\]]*)\]\s*$/;   // [] sozinho encerra a seção anterior
+  // [Final] ou [Final] > anotação; [] sozinho encerra a seção anterior
+  var SECTION_RE = /^\s*\[([^\[\]]*)\]\s*(?:>\s?(.*))?$/;
   var NOTES_RE = /^(\s*notas?\s*:)(.*)$/i;
   var MEMO_RE = /^\s*>\s?(.*)$/;   // anotação para os músicos
   var NOTE_S = /^(d[oó]|r[eé]|mi|f[aá]|sol|l[aá]|si)([#b♯♭]?)([\d']*)$/i;
@@ -300,7 +301,12 @@
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].replace(/\s+$/, ''), t = classify(line);
       if (t === 'blank') { para = null; blanks++; continue; }
-      if (t === 'section') { open(SECTION_RE.exec(line)[1].trim()); continue; }
+      if (t === 'section') {
+        var sm = SECTION_RE.exec(line);
+        open(sm[1].trim());
+        if (sm[2] != null && sm[2].trim()) { add({ t: 'memo', text: sm[2].trim() }); }
+        continue;
+      }
       if (t === 'notes') { add({ t: 'notes', body: NOTES_RE.exec(line)[2] }); continue; }
       if (t === 'memo') { add({ t: 'memo', text: MEMO_RE.exec(line)[1] }); continue; }
       if (t === 'chords') {

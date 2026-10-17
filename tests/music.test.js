@@ -181,4 +181,13 @@ assert.strictEqual(ld.sections[1].label, '');
 assert.strictEqual(ld.sections[1].paras[0].lead, 2);
 assert.strictEqual(ld.sections[0].paras[0].lead, 0);
 
+// anotação na mesma linha do nome da seção
+assert.strictEqual(M.classify('[FINAL] > Somente guitarra'), 'section');
+const fm = M.parse('[Refrão]\nC\nletra\n\n[FINAL] > Somente guitarra\nG  D\nfim\n\n[Refrão] > só voz');
+assert.strictEqual(fm.sections[1].label, 'FINAL');
+assert.deepStrictEqual(M.sectionMemos(fm.sections[1]).map(l => l.text), ['Somente guitarra']);
+assert.strictEqual(fm.sections[2].repeatOf, fm.sections[0]);
+assert.deepStrictEqual(M.sectionMemos(fm.sections[2]).map(l => l.text), ['só voz']);
+assert.strictEqual(M.transposeText('[FINAL] > Somente G', 2, false), '[FINAL] > Somente G');
+
 console.log('ok — todos os testes passaram');
