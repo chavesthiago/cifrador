@@ -20,7 +20,7 @@
 
   var CHORD_RE = /^([A-G][#b♯♭]?)((?:maj|min|dim|aug|sus|add|m|M|º|°|ø|\+|-|\d+|[#b♯♭]\d+|\(|\)|,|\/\d+)*)(?:\/([A-G][#b♯♭]?))?$/;
   var FILLER_RE = /^(\|+|\|:|:\||%|-+|\/+|x\d+|\d+x|\(x\d+\)|\(\d+x\)|N\.?C\.?|\(|\)|:)$/i;
-  var SECTION_RE = /^\s*\[([^\[\]]+)\]\s*$/;
+  var SECTION_RE = /^\s*\[([^\[\]]*)\]\s*$/;   // [] sozinho encerra a seção anterior
   var NOTES_RE = /^(\s*notas?\s*:)(.*)$/i;
   var MEMO_RE = /^\s*>\s?(.*)$/;   // anotação para os músicos
   var NOTE_S = /^(d[oó]|r[eé]|mi|f[aá]|sol|l[aá]|si)([#b♯♭]?)([\d']*)$/i;

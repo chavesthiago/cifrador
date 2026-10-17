@@ -7,7 +7,7 @@ Editor de cifras que roda direto no navegador, sem servidor. Você digita a linh
 Abra o `index.html` no navegador, ou publique a pasta pelo GitHub Pages (Settings → Pages → Deploy from a branch → `main` / raiz).
 
 - **Acordes sobre a letra**: a linha de acordes vai em cima da linha da letra.
-- **Seções**: `[Intro]`, `[Verso 1]`, `[Refrão]`, `[Ponte]`. Repita `[Refrão]` sem nada embaixo para indicar a repetição.
+- **Seções**: `[Intro]`, `[Verso 1]`, `[Refrão]`, `[Ponte]`. Repita `[Refrão]` sem nada embaixo para indicar a repetição. Uma linha só com `[]` encerra a seção anterior sem abrir outra com nome.
 - **Frases com notas** (solo, melodia): comece a linha com `Notas:`, por exemplo `Notas: mi sol lá si` ou `Notas: E G A B`.
 - **Anotações para os músicos**: comece a linha com `>`, por exemplo `> Bumbo em colcheia, cresce`. Também vale no fim de uma linha de acordes (`Bm  G  A > vem crescendo`). Uma seção repetida pode trazer só o nome e as anotações daquela vez.
 - **Modo palco**: a cifra limpa para tocar pelo celular, com atalhos redondos que levam direto a cada seção, anotações à direita e cores claras ou escuras. No celular a música já abre nesse modo; no computador, use o botão "Modo palco".

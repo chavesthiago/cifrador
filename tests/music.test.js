@@ -168,4 +168,11 @@ assert.strictEqual(M.parse('[A]\n\n\nx').sections[0].paras[0].gap, 0);
 
 assert.deepStrictEqual(M.parse('[A]\nx\n\n\n[Coro]\ny\n[B]\nz').sections.map(s => s.gap), [0, 2, 0]);
 
+// [] encerra a seção: o texto seguinte fica fora do refrão
+const fe = M.parse('[Coro]\nC\nlinha do coro\n\n[]\nG\nlinha fora');
+assert.strictEqual(fe.sections.length, 2);
+assert.strictEqual(fe.sections[1].label, '');
+assert.strictEqual(M.sectionKind(fe.sections[1].label), '');
+assert.strictEqual(M.classify('[]'), 'section');
+
 console.log('ok — todos os testes passaram');
