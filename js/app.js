@@ -12,23 +12,8 @@
     mono: 'ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", Menlo, monospace'
   };
   var DEFAULT_OPTS = { cols: 1, size: 11, color: '#000000', margin: 15, font: 'sans', acc: 'auto', notes: 'typed', repeats: 'label', tetrads: false, memos: 'show' };
-  var EXAMPLE = [
-    '[Intro]', 'C  G  Am  F', '',
-    '[Verso 1]', '> Só violão e voz',
-    'C               G', 'Abro a janela, vejo o sol',
-    'Am              F', 'O dia começa devagar',
-    'C               G', 'Pego o violão e a voz',
-    'Am        F     G', 'E deixo a música entrar', '',
-    '[Refrão]',
-    'F        G', 'Canta comigo',
-    'C          Am', 'Essa canção',
-    'F          G          C', 'Que cabe inteira no coração', '',
-    '[Solo]', 'Notas: mi sol lá sol mi ré dó', '',
-    '[Verso 2]',
-    'C               G', 'Fecho os olhos, sigo o som',
-    'Am              F', 'O tempo passa sem pesar', '',
-    '[Refrão]', '> Toda a banda, cresce', ''
-  ].join('\n');
+  // música vazia que só aparece na lista depois de ganhar título ou texto
+  function blankSong(base) { return newSong(Object.assign({ draft: true }, base || {})); }
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
@@ -62,9 +47,13 @@
   function load() {
     var data = null;
     try { data = JSON.parse(localStorage.getItem(STORE)); } catch (e) { /* sem armazenamento */ }
+    // a antiga música de exemplo sai da lista (as que foram editadas e renomeadas ficam)
+    function isExample(s) { return s && s.title === 'Música de exemplo' && s.artist === 'Cifrador' && !data.group; }
+    if (data && Array.isArray(data.songs)) data.songs = data.songs.filter(function (s) { return !isExample(s); });
+    if (data && Array.isArray(data.personal)) data.personal = data.personal.filter(function (s) { return !isExample(s); });
     if (!data || !Array.isArray(data.songs) || !data.songs.length) {
-      var ex = newSong({ title: 'Música de exemplo', artist: 'Cifrador', key: 'C', text: EXAMPLE });
-      return { songs: [ex], current: ex.id };
+      var blank = blankSong();
+      data = Object.assign(data || {}, { songs: [blank], current: blank.id });
     }
     data.songs = data.songs.map(fixSong);
     return data;
@@ -626,7 +615,7 @@
     db.songs.forEach(function (l) {
       if (!ids[l.id] && (l.pending || (l.draft && l.id === db.current))) out.push(l);
     });
-    if (!out.length) out.push(newSong({ draft: true }));
+    if (!out.length) out.push(blankSong());
     db.songs = out;
     var now = db.songs.filter(function (s) { return s.id === db.current; })[0];
     if (!now) { db.current = db.songs[0].id; sel = null; fillForm(); }
@@ -753,7 +742,7 @@
         if (i >= 0) mine[i] = g; else mine.push(g);   // a versão do grupo substitui a cópia antiga
       });
     }
-    if (!mine.length) mine.push(newSong());
+    if (!mine.length) mine.push(blankSong());
     db.songs = mine;
     delete db.personal;
     if (!db.songs.some(function (s) { return s.id === db.current; })) db.current = db.songs[0].id;
@@ -785,8 +774,27 @@
     ul.textContent = '';
     var songs = db.songs.slice().sort(function (a, b) {
       return (a.title || 'Sem título').localeCompare(b.title || 'Sem título', 'pt-BR', { sensitivity: 'base' });
-    }).filter(function (s) { return !q || (s.title + ' ' + s.artist).toLowerCase().indexOf(q) >= 0; });
-    if (!songs.length) { ul.appendChild(el('li', 'empty', 'Nenhuma música encontrada.')); return; }
+    }).filter(function (s) {
+      if (s.draft && !s.title.trim() && !s.text.trim()) return false;   // nova e ainda vazia
+      return !q || (s.title + ' ' + s.artist).toLowerCase().indexOf(q) >= 0;
+    });
+    if (!songs.length && q) { ul.appendChild(el('li', 'empty', 'Nenhuma música encontrada.')); return; }
+    if (!songs.length) {
+      var li0 = el('li', 'empty');
+      li0.appendChild(el('p', '', inGroup() ? 'O grupo ainda não tem músicas.' : 'Nenhuma música por aqui ainda.'));
+      if (!inGroup() && Cloud.configured()) {
+        var g = el('button', 'primary', 'Entrar no grupo');
+        g.type = 'button';
+        g.addEventListener('click', openGroupDialog);
+        li0.appendChild(g);
+      }
+      var nb = el('button', '', 'Nova música');
+      nb.type = 'button';
+      nb.addEventListener('click', function () { $('btnNew').click(); });
+      li0.appendChild(nb);
+      ul.appendChild(li0);
+      return;
+    }
     songs.forEach(function (s) {
       var li = el('li'), b = el('button');
       b.type = 'button';
@@ -840,7 +848,7 @@
   function addSongs(list, draft) {
     list.forEach(function (s) {
       db.songs.push(s);
-      if (draft && inGroup()) s.draft = true; else queueSave(s);
+      if (draft) s.draft = true; else queueSave(s);
     });
     select(list[list.length - 1].id);
   }
@@ -1146,7 +1154,7 @@
       clearTimeout(saveTimers[s.id]);
       Cloud.removeSong(s.id).catch(function () { toast('Sem conexão: a exclusão não chegou ao grupo.'); });
     }
-    if (!db.songs.length) db.songs.push(newSong(inGroup() ? { draft: true } : null));
+    if (!db.songs.length) db.songs.push(blankSong());
     select(db.songs[0].id);
   });
   $('btnImport').addEventListener('click', function () { $('file').click(); });

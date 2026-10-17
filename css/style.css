@@ -234,7 +234,8 @@ button:disabled { opacity: .45; cursor: default; }
 /* ---------- modo palco ---------- */
 #stage {
   --st-bg: #ffffff; --st-ink: #17191c; --st-muted: #868c95; --st-rule: #e2e3e6; --st-bar: #ffffff; --st-btn: #f1f2f4;
-  position: fixed; inset: 0; z-index: 30;
+  /* top/left/right/bottom em vez de inset: iPhones com iOS mais antigo não entendem inset */
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; z-index: 30;
   display: flex; flex-direction: column;
   background: var(--st-bg); color: var(--st-ink);
 }
@@ -243,8 +244,11 @@ button:disabled { opacity: .45; cursor: default; }
   --st-bg: #0f1113; --st-ink: #eceef0; --st-muted: #8e959e; --st-rule: #2a2e33; --st-bar: #15181b; --st-btn: #23272c;
 }
 #stage button { background: var(--st-btn); color: var(--st-ink); border-color: var(--st-rule); }
-.st-bar { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--st-bar); }
-#stage .st-icon { border: 0; background: transparent; font-size: 24px; line-height: 1; padding: 6px 12px; }
+.st-bar { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 10px; padding-top: max(8px, env(safe-area-inset-top)); padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); background: var(--st-bar); }
+#stage .st-icon { flex: none; border: 0; background: transparent; font-size: 24px; line-height: 1; padding: 6px 12px; -webkit-appearance: none; appearance: none; }
+#stage .st-opts { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 36px; padding: 0; border: 1px solid var(--st-rule); border-radius: 8px; background: var(--st-btn); color: var(--st-ink); -webkit-appearance: none; appearance: none; }
+#stage .st-opts svg { width: 20px; height: 20px; fill: currentColor; display: block; }
+.st-key { flex: none; }
 .st-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .st-key { border: 1px solid var(--st-rule); border-radius: 6px; padding: 3px 9px; font-weight: 600; }
 .st-menu {
@@ -267,7 +271,7 @@ button:disabled { opacity: .45; cursor: default; }
   border: 2px solid var(--k); border-radius: 50%; background: transparent; color: var(--st-ink); font-weight: 600; padding: 0;
 }
 #stage .st-chip { width: 40px; height: 40px; font-size: 14px; position: relative; }
-#stage .st-chip.on { background: color-mix(in srgb, var(--k) 22%, transparent); }
+#stage .st-chip.on { background: var(--st-btn); background: color-mix(in srgb, var(--k) 22%, transparent); }
 #stage .st-chip.on::after { content: ""; position: absolute; left: 6px; right: 6px; bottom: -9px; height: 3px; border-radius: 2px; background: var(--k); }
 .k-intro { --k: #8a8f98; } .k-verse { --k: #2f80d6; } .k-chorus { --k: #d64545; } .k-bridge { --k: #d0822d; } .k-other { --k: #3f9f55; }
 /* position: relative faz o offsetTop das seções contar a partir desta área, e não do topo da tela */
@@ -373,3 +377,8 @@ body.stage-on > .topbar, body.stage-on > .tabs, body.stage-on > .app { visibilit
   .page { box-shadow: none; margin: 0; break-after: page; height: 296.6mm; }
   .page:last-child { break-after: auto; }
 }
+
+/* lista vazia */
+#songList .empty p { margin: 4px 0 10px; }
+#songList .empty button { color: var(--ink); display: block; width: 100%; margin-bottom: 6px; text-align: center; border: 1px solid var(--line); background: #fff; padding: 8px; }
+#songList .empty button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
