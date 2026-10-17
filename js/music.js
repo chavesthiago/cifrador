@@ -284,7 +284,7 @@
   function parse(text) {
     var lines = normalizeText(text).split('\n');
     var sections = [], sec = null, para = null, byName = {}, blanks = 0;
-    function open(label) { sec = { label: label, paras: [], repeatOf: null }; sections.push(sec); para = null; blanks = 0; }
+    function open(label) { sec = { label: label, paras: [], repeatOf: null, gap: sections.length ? blanks : 0 }; sections.push(sec); para = null; blanks = 0; }
     // gap: quantas linhas em branco vieram antes do parágrafo (cada Enter vira um respiro)
     function add(obj) {
       if (!sec) open('');

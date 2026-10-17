@@ -166,4 +166,6 @@ const gp = M.parse('[Verso]\nlinha 1\n\nlinha 2\n\n\n\nlinha 3').sections[0].par
 assert.deepStrictEqual(gp.map(p => p.gap), [0, 1, 3]);
 assert.strictEqual(M.parse('[A]\n\n\nx').sections[0].paras[0].gap, 0);
 
+assert.deepStrictEqual(M.parse('[A]\nx\n\n\n[Coro]\ny\n[B]\nz').sections.map(s => s.gap), [0, 2, 0]);
+
 console.log('ok — todos os testes passaram');

@@ -202,6 +202,7 @@
         if (s.label) b0.appendChild(labelEl(s.label, !!s.repeatOf));
         fill(body0, memos);
         if (body0.firstChild) b0.appendChild(body0);
+        if (s.gap > 1) b0.style.paddingTop = ((s.gap - 1) * 1.22) + 'em';
         if (b0.firstChild) out.push(b0);
         return;
       }
@@ -214,7 +215,9 @@
         if (first && s.label) b.appendChild(labelEl(s.label));
         if (body.firstChild) b.appendChild(body);
         // cada linha em branco a mais no texto vira uma linha de espaço na folha
-        if (!first && p.gap > 1) b.style.paddingTop = ((p.gap - 1) * 1.22) + 'em';
+        // antes da seção, vale o espaço digitado antes do nome dela ([Coro], por exemplo)
+        var gap = first ? s.gap : p.gap;
+        if (gap > 1) b.style.paddingTop = ((gap - 1) * 1.22) + 'em';
         first = false;
         out.push(b);
       });
@@ -505,6 +508,7 @@
       var kind = Music.sectionKind(s.label);
       kind = KIND_NAMES[kind] ? kind : (/^intro/i.test(s.label) ? 'intro' : 'other');
       var sec = el('section', 'st-sec k-' + kind);
+      if (s.gap > 1) sec.style.paddingTop = ((s.gap - 1) * 1.3) + 'em';
       sec.id = 'st-sec-' + i;
       if (s.label) {
         var abbr = Music.sectionAbbr(s.label), head = el('div', 'st-head');
