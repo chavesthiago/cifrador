@@ -141,7 +141,7 @@ const sm = { title: 'T', artist: '', key: '', capo: '', tempo: '', text: '[Ponte
 const chm = M.toChordPro(sm);
 assert(/\{ci: Groove\}/.test(chm) && /\{ci: Crescendo\}/.test(chm), chm);
 assert.strictEqual(M.toChordPro(Object.assign({}, sm, { text: M.fromChordPro(chm).text })), chm);
-[['Intro', 'It'], ['Verso 1', 'V1'], ['Verso', 'V'], ['Refrão', 'R'], ['Refrão 1', 'R1'], ['Ponte', 'P'], ['Pré-refrão', 'PR'], ['Tom', 'To'], ['Solo', 'So'], ['Final', 'F'], ['A', 'A']]
+[['Intro', 'In'], ['Introdução', 'In'], ['Verso 1', 'V1'], ['Verso', 'V'], ['Refrão', 'R'], ['Refrão 1', 'R1'], ['Ponte', 'P'], ['Pré-refrão', 'PR'], ['Tom', 'To'], ['Solo', 'So'], ['Final', 'F'], ['A', 'A']]
   .forEach(([a, b]) => assert.strictEqual(M.sectionAbbr(a), b, a));
 
 // anotação no fim da linha de acordes

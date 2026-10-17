@@ -262,7 +262,7 @@
   function sectionAbbr(label) {
     var l = (label || '').trim(), low = l.toLowerCase();
     var num = (/(\d+)\s*$/.exec(l) || [])[1] || '';
-    var base = /^intro/.test(low) ? 'It'
+    var base = /^intro/.test(low) ? 'In'
       : /^pr[eé][- ]?refr/.test(low) ? 'PR'
       : /^(refr|chorus|coro)/.test(low) ? 'R'
       : /^(vers|estrofe)/.test(low) ? 'V'
