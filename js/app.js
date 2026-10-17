@@ -72,7 +72,7 @@
   function save() {
     try {
       localStorage.setItem(STORE, JSON.stringify(db));
-      $('saved').textContent = 'Salvo neste navegador';
+      showCloud();
     } catch (e) {
       if (!memoryOnly) toast('Este navegador não deixou salvar. Use "Backup" para não perder as músicas.');
       memoryOnly = true;
@@ -564,6 +564,191 @@
     fitZoom();
   }
 
+  /* ---------- grupo online (Firebase) ---------- */
+
+  var saveTimers = {}, inflight = {}, online = false, joining = false, retryTimer = null;
+
+  function inGroup() { return !!db.group && Cloud.configured(); }
+  function pendingCount() { return db.songs.filter(function (s) { return s.pending; }).length; }
+
+  // Grava no grupo pouco depois da última alteração; até a confirmação a música fica "pendente".
+  function queueSave(s) {
+    if (!inGroup()) return;
+    s.pending = true;
+    clearTimeout(saveTimers[s.id]);
+    saveTimers[s.id] = setTimeout(function () { pushSong(s); }, 700);
+    showCloud();
+  }
+  function pushSong(s) {
+    delete saveTimers[s.id];
+    if (!Cloud.connected() || inflight[s.id]) return;   // vai na próxima conexão / já está a caminho
+    var at = s.updated;
+    inflight[s.id] = true;
+    // o set() do Firebase avisa a própria lista na hora; inflight evita regravar em seguida
+    Cloud.saveSong(s).then(function () {
+      delete inflight[s.id];
+      if (s.updated === at) { delete s.pending; save(); } else if (!saveTimers[s.id]) pushSong(s);
+      showCloud();
+    }, function () {
+      delete inflight[s.id];
+      toast('O grupo recusou a gravação de "' + (s.title || 'Sem título') + '".');
+      showCloud();
+    });
+  }
+  function flushPending() {
+    db.songs.forEach(function (s) { if (s.pending && !saveTimers[s.id] && !inflight[s.id]) pushSong(s); });
+  }
+
+  // Junta a lista do grupo com o que ainda não foi confirmado neste aparelho.
+  function mergeRemote(list) {
+    var before = cur(), local = {}, ids = {};
+    db.songs.forEach(function (s) { local[s.id] = s; });
+    var out = list.map(function (r) {
+      var l = local[r.id];
+      ids[r.id] = 1;
+      return l && l.pending ? l : fixSong(r);
+    });
+    db.songs.forEach(function (l) {
+      if (!ids[l.id] && (l.pending || (l.draft && l.id === db.current))) out.push(l);
+    });
+    if (!out.length) out.push(newSong({ draft: true }));
+    db.songs = out;
+    var now = db.songs.filter(function (s) { return s.id === db.current; })[0];
+    if (!now) { db.current = db.songs[0].id; sel = null; fillForm(); }
+    else if (now !== before) refreshForm();
+    save();
+    renderList();
+    renderSoon();
+  }
+  // Atualiza o editor com a versão que chegou do grupo sem tirar o cursor do lugar.
+  function refreshForm() {
+    var ta = $('text'), a = ta.selectionStart, b = ta.selectionEnd, focused = document.activeElement === ta;
+    fillForm();
+    if (focused) { ta.selectionStart = Math.min(a, ta.value.length); ta.selectionEnd = Math.min(b, ta.value.length); }
+  }
+
+  function showCloud() {
+    var btn = $('btnGroup'), saved = $('saved');
+    btn.classList.toggle('is-on', inGroup());
+    btn.classList.toggle('is-off', inGroup() && !online);
+    if (!inGroup()) {
+      btn.textContent = 'Grupo';
+      btn.title = 'Guardar as músicas online e compartilhar com o grupo';
+      if (!memoryOnly) saved.textContent = 'Salvo neste navegador';
+      return;
+    }
+    btn.textContent = '● ' + db.group;
+    btn.title = online ? 'Conectado ao grupo' : 'Sem conexão com o grupo';
+    var n = pendingCount();
+    saved.textContent = !online
+      ? (n ? 'Sem conexão: ' + n + ' alteração(ões) guardada(s) neste aparelho' : 'Sem conexão: mostrando a última cópia do grupo')
+      : (n ? 'Enviando ao grupo…' : 'Salvo no grupo');
+  }
+
+  var cloudHandlers = {
+    onSongs: function (list) { mergeRemote(list); flushPending(); showCloud(); },
+    onStatus: function (on) { online = on; if (on) flushPending(); showCloud(); },
+    onError: function (e) { online = false; showCloud(); scheduleRetry(); }
+  };
+
+  function scheduleRetry() {
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(function () { if (inGroup() && !Cloud.connected()) connectGroup(); }, 30000);
+  }
+  // Conexão ao abrir o Cifrador já dentro de um grupo.
+  function connectGroup() {
+    if (!inGroup()) return;
+    Cloud.connect(db.group, cloudHandlers).catch(function (e) {
+      online = false;
+      if (e.message === 'denied') {
+        toast('O código "' + db.group + '" não dá mais acesso ao grupo. Voltando às músicas deste aparelho.');
+        leaveGroup(true);
+      } else { showCloud(); scheduleRetry(); }
+    });
+  }
+
+  function joinGroup(code) {
+    if (joining) return;
+    var msg = $('gMsg'), previous = db.group;
+    code = code.trim().toLowerCase();
+    if (!Cloud.validCode(code)) { msg.textContent = 'O código deve ter de 6 a 60 letras, números, - ou _ (sem espaços).'; return; }
+    if (previous === code) { $('groupDlg').close(); return; }
+    if (previous) leaveGroup(true);
+    joining = true;
+    msg.textContent = 'Conectando…';
+    var personal = db.songs;
+    db.personal = personal;
+    db.group = code;
+    db.songs = personal.map(function (s) { return Object.assign({}, s); });   // cópia até chegar a lista do grupo
+    db.songs.forEach(function (s) { delete s.pending; delete s.draft; });
+    Cloud.connect(code, cloudHandlers).then(function () {
+      joining = false;
+      online = true;
+      $('groupDlg').close();
+      var mine = personal.filter(function (s) {
+        return s.text.trim() && !db.songs.some(function (g) { return g.id === s.id; });
+      });
+      if (mine.length && window.confirm('Entrou no grupo "' + code + '". Enviar também as ' + mine.length +
+          ' música(s) deste aparelho para o grupo?')) {
+        mine.forEach(function (s) {
+          var copy = fixSong(clone(s));
+          db.songs.push(copy);
+          queueSave(copy);
+        });
+        db.songs = db.songs.filter(function (s) { return !(s.draft && !s.text.trim()); });
+        if (!db.songs.some(function (s) { return s.id === db.current; })) db.current = db.songs[0].id;
+        save(); fillForm(); renderList(); render();
+      }
+      toast('Conectado ao grupo "' + code + '".');
+      showCloud();
+    }, function (e) {
+      joining = false;
+      db.group = previous || '';
+      db.songs = personal;
+      delete db.personal;
+      save();
+      msg.textContent = e.message === 'denied' ? 'Código não encontrado. Confira com quem criou o grupo.'
+        : e.message === 'code' ? 'Código inválido.'
+        : 'Não foi possível conectar. Verifique a internet e tente de novo.';
+      showCloud();
+    });
+  }
+
+  function leaveGroup(silent) {
+    var n = pendingCount();
+    if (!silent && n && !window.confirm(n + ' alteração(ões) ainda não chegaram ao grupo e serão perdidas. Sair mesmo assim?')) return false;
+    Object.keys(saveTimers).forEach(function (id) { clearTimeout(saveTimers[id]); });
+    saveTimers = {};
+    inflight = {};
+    Cloud.disconnect();
+    online = false;
+    db.group = '';
+    // sem músicas pessoais guardadas, fica com uma cópia das músicas do grupo
+    db.songs = (db.personal && db.personal.length) ? db.personal
+      : db.songs.map(function (s) { s = Object.assign({}, s); delete s.pending; delete s.draft; return s; });
+    delete db.personal;
+    if (!db.songs.some(function (s) { return s.id === db.current; })) db.current = db.songs[0].id;
+    sel = null;
+    save(); fillForm(); renderList(); render(); showCloud();
+    return true;
+  }
+
+  function openGroupDialog() {
+    var dlg = $('groupDlg'), ok = Cloud.configured();
+    $('gCode').value = db.group || '';
+    $('gMsg').textContent = '';
+    $('gInfo').textContent = !ok
+      ? 'O banco online ainda não foi configurado neste Cifrador. Enquanto isso, as músicas ficam guardadas só neste navegador.'
+      : db.group
+        ? 'Você está no grupo "' + db.group + '". As músicas ficam online e todos com o mesmo código veem as mesmas músicas. As músicas pessoais deste aparelho voltam quando você sair do grupo.'
+        : 'Com o código do grupo, as músicas ficam guardadas online e todos que usam o mesmo código veem e editam as mesmas músicas.';
+    $('gJoin').disabled = !ok;
+    $('gCode').disabled = !ok;
+    $('gLeave').hidden = !db.group;
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    if (ok && !db.group) $('gCode').focus();
+  }
+
   /* ---------- lista ---------- */
 
   function renderList() {
@@ -599,7 +784,10 @@
     save(); fillForm(); renderList(); render();
   }
   function touch() {
-    cur().updated = Date.now();
+    var s = cur();
+    s.updated = Date.now();
+    delete s.draft;
+    queueSave(s);
     save();
     renderSoon();
   }
@@ -619,8 +807,12 @@
     toastTimer = setTimeout(function () { t.classList.remove('on'); }, 4200);
   }
 
-  function addSongs(list) {
-    list.forEach(function (s) { db.songs.push(s); });
+  // draft: música nova e vazia no grupo; só vai para o banco quando for editada.
+  function addSongs(list, draft) {
+    list.forEach(function (s) {
+      db.songs.push(s);
+      if (draft && inGroup()) s.draft = true; else queueSave(s);
+    });
     select(list[list.length - 1].id);
   }
 
@@ -708,7 +900,7 @@
         return list.map(function (s) {
           s = fixSong(s);
           var old = db.songs.filter(function (x) { return x.id === s.id; })[0];
-          if (old) { Object.assign(old, s); return null; }   // mesma música: atualiza
+          if (old) { Object.assign(old, s); queueSave(old); return null; }   // mesma música: atualiza
           return s;
         }).filter(Boolean);
       }
@@ -869,6 +1061,12 @@
     this.textContent = open ? 'Menos ▴' : 'Mais ▾';
   });
   $('btnStage').addEventListener('click', openStage);
+  $('btnGroup').addEventListener('click', openGroupDialog);
+  $('gJoin').addEventListener('click', function () { joinGroup($('gCode').value); });
+  $('gCode').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); joinGroup(this.value); } });
+  $('gLeave').addEventListener('click', function () { if (leaveGroup(false)) { $('groupDlg').close(); toast('Você saiu do grupo.'); } });
+  $('gClose').addEventListener('click', function () { $('groupDlg').close(); });
+  window.addEventListener('online', function () { if (inGroup() && !Cloud.connected()) connectGroup(); });
   $('stBack').addEventListener('click', function () { closeStage(false); });
   window.addEventListener('popstate', function () { closeStage(true); });
   $('stMore').addEventListener('click', function () { $('stMenu').hidden = !$('stMenu').hidden; });
@@ -906,15 +1104,20 @@
   $('btnFit').addEventListener('click', fitOnePage);
 
   $('btnNew').addEventListener('click', function () {
-    addSongs([newSong({ opts: clone(cur().opts) })]);
+    addSongs([newSong({ opts: clone(cur().opts) })], true);
     setTab('edit');
     $('fTitle').focus();
   });
   $('btnDelete').addEventListener('click', function () {
     var s = cur();
-    if (!window.confirm('Excluir "' + (s.title || 'Sem título') + '"? Isso não pode ser desfeito.')) return;
+    var who = inGroup() ? ' para todos do grupo' : '';
+    if (!window.confirm('Excluir "' + (s.title || 'Sem título') + '"' + who + '? Isso não pode ser desfeito.')) return;
     db.songs = db.songs.filter(function (x) { return x.id !== s.id; });
-    if (!db.songs.length) db.songs.push(newSong());
+    if (inGroup() && !s.draft) {
+      clearTimeout(saveTimers[s.id]);
+      Cloud.removeSong(s.id).catch(function () { toast('Sem conexão: a exclusão não chegou ao grupo.'); });
+    }
+    if (!db.songs.length) db.songs.push(newSong(inGroup() ? { draft: true } : null));
     select(db.songs[0].id);
   });
   $('btnImport').addEventListener('click', function () { $('file').click(); });
@@ -942,6 +1145,8 @@
   else window.addEventListener('resize', fitZoom);
 
   fillForm(); renderList(); render();
+  showCloud();
+  if (inGroup()) connectGroup();
   if (isPhone()) openStage();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
 })();

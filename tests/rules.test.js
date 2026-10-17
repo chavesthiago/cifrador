@@ -1,0 +1,24 @@
+// Testes das regras do banco (precisa de: npm i targaryen@3). Rodar com: node tests/rules.test.js
+const t = require('targaryen'), assert = require('assert');
+const rules = require('../database.rules.json');
+const data = { codigos: { 'louvor-2026': true, desligado: false }, grupos: { 'louvor-2026': { musicas: { a1: { text: 'C', updated: 1 } } }, intruso: { musicas: { x: { text: 'C', updated: 1 } } } } };
+const db = t.database(rules, data).with({ debug: false });
+const ok = (r, msg) => assert(r.allowed, msg + '\n' + r.info), no = (r, msg) => assert(!r.allowed, msg);
+const song = { text: 'C  G\nletra', updated: 2, title: 'T' };
+ok(db.read('/grupos/louvor-2026/musicas'), 'ler grupo válido');
+ok(db.write('/grupos/louvor-2026/musicas/b2', song), 'gravar música');
+ok(db.write('/grupos/louvor-2026/musicas/a1', null), 'apagar música');
+ok(db.write('/grupos/louvor-2026/palco', { secao: 'v1' }), 'futuro sincronismo');
+no(db.read('/grupos'), 'listar grupos');
+no(db.read('/codigos'), 'ler códigos');
+no(db.read('/'), 'ler tudo');
+no(db.write('/codigos/meu', true), 'criar código');
+no(db.read('/grupos/inventado/musicas'), 'grupo inexistente');
+no(db.write('/grupos/inventado/musicas/z', song), 'gravar em grupo inexistente');
+no(db.read('/grupos/desligado/musicas'), 'código desativado');
+no(db.read('/grupos/intruso/musicas'), 'grupo sem código');
+no(db.write('/grupos/louvor-2026/musicas/b3', { title: 'sem texto' }), 'música sem texto');
+no(db.write('/grupos/louvor-2026/musicas/b4', { text: 'x'.repeat(60001), updated: 1 }), 'texto gigante');
+no(db.write('/grupos/louvor-2026/lixo', { a: 1 }), 'outro caminho');
+no(db.write('/outra', 1), 'raiz');
+console.log('regras ok');

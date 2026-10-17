@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cifrador</title>
-  <link rel="stylesheet" href="css/style.css?v=20261011c">
+  <link rel="stylesheet" href="css/style.css?v=20261016a">
 </head>
 <body data-tab="view">
 
@@ -15,6 +15,7 @@
     <button id="btnImport" type="button" title="Abrir letra (.txt), cifra ChordPro (.cho) ou backup (.json)">Importar</button>
     <button id="btnExport" type="button" title="Salvar esta música como arquivo ChordPro">Salvar arquivo</button>
     <button id="btnBackup" type="button" title="Baixar um arquivo com todas as músicas">Backup</button>
+    <button id="btnGroup" type="button" class="group-btn">Grupo</button>
     <button id="btnStage" type="button" title="Cifra limpa para tocar pelo celular, com atalhos de seção">Modo palco</button>
     <button id="btnPrint" type="button" class="primary">Imprimir / PDF</button>
   </div>
@@ -196,11 +197,27 @@
   <div id="stBody" class="st-body cifra"></div>
 </div>
 
+<dialog id="groupDlg" class="dlg" aria-labelledby="gTitle">
+  <h2 id="gTitle">Grupo</h2>
+  <p id="gInfo"></p>
+  <label class="dlg-field">Código do grupo
+    <input id="gCode" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex.: louvor-sede">
+  </label>
+  <p id="gMsg" class="dlg-msg" role="status"></p>
+  <div class="dlg-actions">
+    <button type="button" id="gLeave" class="danger">Sair do grupo</button>
+    <button type="button" id="gClose">Fechar</button>
+    <button type="button" id="gJoin" class="primary">Entrar</button>
+  </div>
+</dialog>
+
 <div id="measure" class="cifra" aria-hidden="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input id="file" type="file" hidden multiple accept=".txt,.cho,.chopro,.chordpro,.crd,.pro,.json,text/plain,application/json">
 
-<script src="js/music.js?v=20261011c"></script>
-<script src="js/app.js?v=20261011c"></script>
+<script src="js/config.js?v=20261016a"></script>
+<script src="js/music.js?v=20261016a"></script>
+<script src="js/cloud.js?v=20261016a"></script>
+<script src="js/app.js?v=20261016a"></script>
 </body>
 </html>
