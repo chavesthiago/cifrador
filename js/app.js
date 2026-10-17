@@ -180,6 +180,7 @@
     return s.repeatOf.paras.map(function (p) {
       var q = p.filter(function (l) { return l.t !== 'memo'; });
       q.gap = p.gap;
+      q.lead = p.lead;
       return q;
     }).filter(function (p) { return p.length; });
   }
@@ -218,6 +219,7 @@
         // antes da seção, vale o espaço digitado antes do nome dela ([Coro], por exemplo)
         var gap = first ? s.gap : p.gap;
         if (gap > 1) b.style.paddingTop = ((gap - 1) * 1.22) + 'em';
+        if (first && p.lead && body.firstChild) body.style.paddingTop = (p.lead * 1.22) + 'em';
         first = false;
         out.push(b);
       });
@@ -523,10 +525,13 @@
         chipB.setAttribute('data-target', sec.id);
         nav.appendChild(chipB);
       }
-      (paras.length ? [memos.concat(paras[0])].concat(paras.slice(1)) : [memos]).forEach(function (p) {
+      var head = paras.length ? memos.concat(paras[0]) : memos;
+      if (paras.length) head.lead = paras[0].lead;   // a junção com as anotações não pode perder o respiro
+      [head].concat(paras.slice(1)).forEach(function (p) {
         if (!p.length) return;
         var para = el('div', 'st-para');
         if (p.gap > 1) para.style.paddingTop = ((p.gap - 1) * 1.3) + 'em';
+        if (p.lead) para.style.paddingTop = (p.lead * 1.3) + 'em';
         p.forEach(function (l) { para.appendChild(lineEl(l, o)); });
         sec.appendChild(para);
       });

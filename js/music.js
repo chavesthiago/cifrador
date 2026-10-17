@@ -288,7 +288,12 @@
     // gap: quantas linhas em branco vieram antes do parágrafo (cada Enter vira um respiro)
     function add(obj) {
       if (!sec) open('');
-      if (!para) { para = []; para.gap = sec.paras.length ? blanks : 0; sec.paras.push(para); }
+      if (!para) {
+        para = [];
+        para.gap = sec.paras.length ? blanks : 0;    // linhas em branco antes de um parágrafo
+        para.lead = sec.paras.length ? 0 : blanks;   // linhas em branco logo depois do nome da seção
+        sec.paras.push(para);
+      }
       blanks = 0;
       para.push(obj);
     }

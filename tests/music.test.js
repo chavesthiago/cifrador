@@ -175,4 +175,10 @@ assert.strictEqual(fe.sections[1].label, '');
 assert.strictEqual(M.sectionKind(fe.sections[1].label), '');
 assert.strictEqual(M.classify('[]'), 'section');
 
+// Enter logo depois do nome da seção (inclusive [ ])
+const ld = M.parse('[Coro]\nx\n\n[ ]\n\n\nG\nfora');
+assert.strictEqual(ld.sections[1].label, '');
+assert.strictEqual(ld.sections[1].paras[0].lead, 2);
+assert.strictEqual(ld.sections[0].paras[0].lead, 0);
+
 console.log('ok — todos os testes passaram');
