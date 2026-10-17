@@ -661,8 +661,8 @@
     Cloud.connect(db.group, cloudHandlers).catch(function (e) {
       online = false;
       if (e.message === 'denied') {
-        toast('O código "' + db.group + '" não dá mais acesso ao grupo. Voltando às músicas deste aparelho.');
-        leaveGroup(true);
+        toast('O código "' + db.group + '" não dá mais acesso ao grupo. As músicas do grupo ficaram guardadas neste aparelho.');
+        leaveGroup(true, true);
       } else { showCloud(); scheduleRetry(); }
     });
   }
@@ -714,18 +714,32 @@
     });
   }
 
-  function leaveGroup(silent) {
-    var n = pendingCount();
-    if (!silent && n && !window.confirm(n + ' alteração(ões) ainda não chegaram ao grupo e serão perdidas. Sair mesmo assim?')) return false;
+  // keep: guarda neste aparelho uma cópia das músicas do grupo (junto das pessoais).
+  function leaveGroup(silent, keep) {
+    var group = db.songs.filter(function (s) { return !(s.draft && !s.text.trim()); });
+    if (!silent) {
+      keep = group.length > 0 && window.confirm('Guardar neste aparelho uma cópia das ' + group.length +
+        ' música(s) do grupo? Assim elas continuam disponíveis depois de sair.');
+      var n = pendingCount();
+      if (!keep && n && !window.confirm(n + ' alteração(ões) ainda não chegaram ao grupo e serão perdidas. Sair mesmo assim?')) return false;
+    }
     Object.keys(saveTimers).forEach(function (id) { clearTimeout(saveTimers[id]); });
     saveTimers = {};
     inflight = {};
     Cloud.disconnect();
     online = false;
     db.group = '';
-    // sem músicas pessoais guardadas, fica com uma cópia das músicas do grupo
-    db.songs = (db.personal && db.personal.length) ? db.personal
-      : db.songs.map(function (s) { s = Object.assign({}, s); delete s.pending; delete s.draft; return s; });
+    var mine = (db.personal || []).slice();
+    if (keep || !mine.length) {
+      group.forEach(function (g) {
+        g = Object.assign({}, g);
+        delete g.pending; delete g.draft;
+        var i = mine.map(function (m) { return m.id; }).indexOf(g.id);
+        if (i >= 0) mine[i] = g; else mine.push(g);   // a versão do grupo substitui a cópia antiga
+      });
+    }
+    if (!mine.length) mine.push(newSong());
+    db.songs = mine;
     delete db.personal;
     if (!db.songs.some(function (s) { return s.id === db.current; })) db.current = db.songs[0].id;
     sel = null;
@@ -1146,6 +1160,10 @@
 
   fillForm(); renderList(); render();
   showCloud();
+  // guarda o próprio Cifrador no aparelho para abrir mesmo sem internet
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('sw.js').catch(function () { /* sem modo offline */ });
+  }
   if (inGroup()) connectGroup();
   if (isPhone()) openStage();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
