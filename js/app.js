@@ -1180,6 +1180,7 @@
     navigator.serviceWorker.register('sw.js').catch(function () { /* sem modo offline */ });
   }
   if (inGroup()) connectGroup();
-  if (isPhone()) openStage();
+  // no celular, começa pela lista de músicas; o palco abre ao tocar em uma música
+  if (isPhone()) setTab('list');
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
 })();
