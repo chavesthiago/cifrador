@@ -468,8 +468,23 @@
     return db.stage;
   }
 
+  // Transposição do palco: só neste aparelho e só até recarregar a página (não altera a música).
+  var stageShift = {};
+  function stageView(song) {
+    var n = stageShift[song.id] || 0;
+    if (!n) return { text: song.text, key: song.key, shift: 0 };
+    var key = song.key.trim() || Music.firstChord(song.text);
+    var flat = song.opts.acc === 'flat' || (song.opts.acc === 'auto' && Music.prefersFlat(key, n));
+    return { text: Music.transposeText(song.text, n, flat), key: Music.transposeKey(song.key, n, flat), shift: n };
+  }
+  function shiftLabel(n) {
+    var tones = Math.abs(n) / 2, txt = String(tones).replace('.5', '½').replace(/^0½$/, '½');
+    return (n > 0 ? '+' : '−') + txt + (tones > 1 ? ' tons' : ' tom');
+  }
+
   function renderStage() {
     var song = cur(), prefs = stagePrefs(), stage = $('stage'), body = $('stBody'), nav = $('stNav');
+    var view = stageView(song);
     var keep = body.scrollTop, o = { notes: song.opts.notes, plain: true };
     stage.setAttribute('data-theme', prefs.theme);
     stage.setAttribute('data-chord', prefs.chord);
@@ -479,8 +494,12 @@
     body.style.setProperty('--fs', prefs.size + 'px');
     body.style.setProperty('--cf', FONTS[song.opts.font] || FONTS.sans);
     $('stTitle').textContent = song.title || 'Sem título';
-    $('stKey').textContent = song.key || '—';
-    $('stKey').hidden = !song.key;
+    $('stKey').textContent = view.key || '—';
+    $('stKey').hidden = !view.key && !view.shift;
+    $('stKey').classList.toggle('shifted', !!view.shift);
+    $('stKey').title = view.shift ? 'Tom original: ' + (song.key || '?') + ' (alterado só neste aparelho)' : 'Tom';
+    $('stShift').textContent = view.shift ? shiftLabel(view.shift) + ' só neste aparelho' : 'Tom original';
+    $('stReset').hidden = !view.shift;
     $('stLight').setAttribute('aria-pressed', prefs.theme === 'light');
     $('stDark').setAttribute('aria-pressed', prefs.theme === 'dark');
     body.textContent = '';
@@ -492,7 +511,7 @@
     if (song.tempo) info.push(song.tempo + ' bpm');
     if (info.length) body.appendChild(el('div', 'st-info', info.join('  ·  ')));
 
-    Music.parse(song.text).sections.forEach(function (s, i) {
+    Music.parse(view.text).sections.forEach(function (s, i) {
       var memos = [], paras = s.paras;
       if (s.repeatOf) { memos = Music.sectionMemos(s); paras = repeatParas(s); }   // no palco, sempre por extenso
       if (!s.label && !paras.length) return;
@@ -1132,8 +1151,15 @@
   }
   $('stSmaller').addEventListener('click', function () { stageSize(-1); });
   $('stBigger').addEventListener('click', function () { stageSize(1); });
-  $('stDown').addEventListener('click', function () { transpose(-1); });
-  $('stUp').addEventListener('click', function () { transpose(1); });
+  function stageTranspose(d) {
+    var id = cur().id, n = ((stageShift[id] || 0) + d) % 12;
+    if (n > 6) n -= 12; else if (n < -6) n += 12;
+    stageShift[id] = n;
+    renderStage();
+  }
+  $('stDown').addEventListener('click', function () { stageTranspose(-1); });
+  $('stUp').addEventListener('click', function () { stageTranspose(1); });
+  $('stReset').addEventListener('click', function () { delete stageShift[cur().id]; renderStage(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && stageOn) closeStage(false); });
 
   $('btnSmaller').addEventListener('click', function () { resize(-0.5); });

@@ -12,7 +12,7 @@ Abra o `index.html` no navegador, ou publique a pasta pelo GitHub Pages (Setting
 - **Anotações para os músicos**: comece a linha com `>`, por exemplo `> Bumbo em colcheia, cresce`. Também vale na linha do nome da seção (`[Final] > Somente guitarra`) e no fim de uma linha de acordes (`Bm  G  A > vem crescendo`). Uma seção repetida pode trazer só o nome e as anotações daquela vez.
 - **Modo palco**: a cifra limpa para tocar pelo celular, com atalhos redondos que levam direto a cada seção, anotações à direita e cores claras ou escuras. No celular, tocar em uma música na lista abre esse modo; no computador, use o botão "Modo palco".
 - **Paleta de acordes**: escolhido o tom, a folha mostra o campo harmônico (tríades ou tétrades), os empréstimos do tom homônimo e os dominantes secundários. Arraste o acorde até a letra, ou clique na letra e depois no acorde. Acordes já colocados podem ser arrastados, trocados, movidos com as setas e apagados com `Delete`.
-- **Transposição**: botões −½ tom e +½ tom; acordes, notas e o tom acompanham.
+- **Transposição**: no editor, os botões −½ tom e +½ tom alteram a música para todos. No modo palco, a transposição vale só naquele aparelho e volta ao tom original ao recarregar a página.
 - **Ajuste fino**: com o cursor sobre um acorde, `Alt` + `←` / `→` move o acorde uma casa.
 - **Folha**: A4 em 1 ou 2 colunas, tamanho da letra, margem, cor dos acordes e o botão "Caber em 1 página".
 - **Importar**: letra em `.txt`, cifra em ChordPro (`.cho`) ou backup (`.json`).

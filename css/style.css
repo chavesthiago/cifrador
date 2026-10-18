@@ -249,6 +249,9 @@ button:disabled { opacity: .45; cursor: default; }
 #stage .st-opts { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 36px; padding: 0; border: 1px solid var(--st-rule); border-radius: 8px; background: var(--st-btn); color: var(--st-ink); -webkit-appearance: none; appearance: none; }
 #stage .st-opts svg { width: 20px; height: 20px; fill: currentColor; display: block; }
 .st-key { flex: none; }
+#stage .st-key.shifted { border-color: #d0822d; color: #d0822d; font-weight: 700; }
+.st-note small { color: var(--st-muted); font-size: 12px; flex: 1; }
+#stage .st-note button { min-width: 0; font-size: 13px; padding: 6px 10px; }
 .st-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .st-key { border: 1px solid var(--st-rule); border-radius: 6px; padding: 3px 9px; font-weight: 600; }
 .st-menu {
