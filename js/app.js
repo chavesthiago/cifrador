@@ -56,8 +56,21 @@
       data = Object.assign(data || {}, { songs: [blank], current: blank.id });
     }
     data.songs = data.songs.map(fixSong);
+    data.setlists = (Array.isArray(data.setlists) ? data.setlists : []).map(fixSetlist);
     return data;
   }
+  // Repertório: nome, data (aaaa-mm-dd) e a ordem das músicas (ids).
+  function fixSetlist(r) {
+    r = r || {};
+    var ids = Array.isArray(r.musicas) ? r.musicas : (r.musicas && typeof r.musicas === 'object' ? Object.keys(r.musicas).sort(function (a, b) { return a - b; }).map(function (k) { return r.musicas[k]; }) : []);
+    var out = {
+      id: r.id || uid(), nome: String(r.nome || ''), data: /^\d{4}-\d{2}-\d{2}$/.test(r.data || '') ? r.data : '',
+      musicas: ids.filter(function (x) { return typeof x === 'string'; }), updated: Number(r.updated) || Date.now()
+    };
+    if (r.pending) out.pending = true;
+    return out;
+  }
+
   function save() {
     try {
       localStorage.setItem(STORE, JSON.stringify(db));
@@ -546,6 +559,7 @@
       body.appendChild(sec);
     });
     nav.hidden = !nav.firstChild;
+    renderSetBar();
     body.scrollTop = keep;
     spyStage();
   }
@@ -583,6 +597,7 @@
     $('stage').hidden = true;
     if (wakeLock) { try { wakeLock.release(); } catch (e) { /* já solto */ } wakeLock = null; }
     if (isPhone()) setTab('list');
+    if (stagePlay) { listMode = 'sets'; openSet = stagePlay.set; renderList(); }
     if (!fromHistory) { try { if (history.state && history.state.stage) history.back(); } catch (e) { /* sem histórico */ } }
     fitZoom();
   }
@@ -670,7 +685,8 @@
 
   var cloudHandlers = {
     onSongs: function (list) { mergeRemote(list); flushPending(); showCloud(); },
-    onStatus: function (on) { online = on; if (on) flushPending(); showCloud(); },
+    onSetlists: function (list) { mergeRemoteSets(list); flushSets(); },
+    onStatus: function (on) { online = on; if (on) { flushPending(); flushSets(); } showCloud(); },
     onError: function (e) { online = false; showCloud(); scheduleRetry(); }
   };
 
@@ -699,8 +715,10 @@
     if (previous) leaveGroup(true);
     joining = true;
     msg.textContent = 'Conectando…';
-    var personal = db.songs;
+    var personal = db.songs, personalSets = db.setlists || [];
     db.personal = personal;
+    db.personalSets = personalSets;
+    db.setlists = [];
     db.group = code;
     db.songs = personal.map(function (s) { return Object.assign({}, s); });   // cópia até chegar a lista do grupo
     db.songs.forEach(function (s) { delete s.pending; delete s.draft; });
@@ -720,6 +738,12 @@
         });
         db.songs = db.songs.filter(function (s) { return !(s.draft && !s.text.trim()); });
         if (!db.songs.some(function (s) { return s.id === db.current; })) db.current = db.songs[0].id;
+        personalSets.forEach(function (r) {   // os repertórios deste aparelho vão junto
+          if (db.setlists.some(function (g) { return g.id === r.id; })) return;
+          var copy = fixSetlist(clone(r));
+          db.setlists.push(copy);
+          persistSet(copy);
+        });
         save(); fillForm(); renderList(); render();
       }
       toast('Conectado ao grupo "' + code + '".');
@@ -728,7 +752,9 @@
       joining = false;
       db.group = previous || '';
       db.songs = personal;
+      db.setlists = personalSets;
       delete db.personal;
+      delete db.personalSets;
       save();
       msg.textContent = e.message === 'denied' ? 'Código não encontrado. Confira com quem criou o grupo.'
         : e.message === 'code' ? 'Código inválido.'
@@ -742,7 +768,7 @@
     var group = db.songs.filter(function (s) { return !(s.draft && !s.text.trim()); });
     if (!silent) {
       keep = group.length > 0 && window.confirm('Guardar neste aparelho uma cópia das ' + group.length +
-        ' música(s) do grupo? Assim elas continuam disponíveis depois de sair.');
+        ' música(s) e dos repertórios do grupo? Assim eles continuam disponíveis depois de sair.');
       var n = pendingCount();
       if (!keep && n && !window.confirm(n + ' alteração(ões) ainda não chegaram ao grupo e serão perdidas. Sair mesmo assim?')) return false;
     }
@@ -764,6 +790,19 @@
     if (!mine.length) mine.push(blankSong());
     db.songs = mine;
     delete db.personal;
+    var mySets = (db.personalSets || []).slice();
+    if (keep) {
+      (db.setlists || []).forEach(function (g) {
+        g = fixSetlist(g);
+        delete g.pending;
+        var i = mySets.map(function (m) { return m.id; }).indexOf(g.id);
+        if (i >= 0) mySets[i] = g; else mySets.push(g);
+      });
+    }
+    db.setlists = mySets;
+    delete db.personalSets;
+    openSet = null;
+    stagePlay = null;
     if (!db.songs.some(function (s) { return s.id === db.current; })) db.current = db.songs[0].id;
     sel = null;
     save(); fillForm(); renderList(); render(); showCloud();
@@ -788,7 +827,24 @@
 
   /* ---------- lista ---------- */
 
+  var listMode = 'songs', openSet = null;   // a lista mostra músicas ou repertórios
+  function songById(id) { return db.songs.filter(function (s) { return s.id === id; })[0]; }
+  function setById(id) { return (db.setlists || []).filter(function (r) { return r.id === id; })[0]; }
+  function setSongs(r) { return r.musicas.map(songById).filter(Boolean); }
+  function fmtDate(d) { return d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : 'Sem data'; }
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
   function renderList() {
+    var sets = listMode === 'sets';
+    $('segSongs').setAttribute('aria-selected', !sets);
+    $('segSets').setAttribute('aria-selected', sets);
+    $('search').hidden = sets;
+    $('songList').hidden = sets;
+    $('setPane').hidden = !sets;
+    if (sets) { renderSets(); return; }
     var q = $('search').value.trim().toLowerCase(), ul = $('songList');
     ul.textContent = '';
     var songs = db.songs.slice().sort(function (a, b) {
@@ -820,10 +876,229 @@
       b.setAttribute('aria-current', s.id === db.current ? 'true' : 'false');
       b.appendChild(el('span', 't', s.title || 'Sem título'));
       if (s.artist) b.appendChild(el('span', 'a', s.artist));
-      b.addEventListener('click', function () { select(s.id); setTab('view'); if (isPhone()) openStage(); });
+      b.addEventListener('click', function () { stagePlay = null; select(s.id); setTab('view'); if (isPhone()) openStage(); });
       li.appendChild(b);
       ul.appendChild(li);
     });
+  }
+
+  function btn(text, cls, fn, label) {
+    var b = el('button', cls || '', text);
+    b.type = 'button';
+    if (label) b.setAttribute('aria-label', label);
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  function renderSets() {
+    var pane = $('setPane'), list = db.setlists || [];
+    pane.textContent = '';
+    var r = openSet && setById(openSet);
+    if (!r) {
+      openSet = null;
+      pane.appendChild(btn('+ Novo repertório', 'primary set-new', function () { openSetDialog(null); }));
+      if (!list.length) {
+        pane.appendChild(el('p', 'set-empty', 'Monte a lista de músicas de um culto ou ensaio, na ordem em que serão tocadas.' +
+          (inGroup() ? ' Todos do grupo veem os repertórios.' : '')));
+        return;
+      }
+      var ul = el('ul', 'set-list'), now = today();
+      list.slice().sort(function (a, b) { return (b.data || '').localeCompare(a.data || '') || a.nome.localeCompare(b.nome, 'pt-BR'); })
+        .forEach(function (x) {
+          var li = el('li'), b = btn('', 'set-card' + (x.data && x.data < now ? ' past' : ''), function () { openSet = x.id; renderSets(); });
+          b.appendChild(el('span', 't', x.nome || 'Sem nome'));
+          b.appendChild(el('span', 'a', fmtDate(x.data) + ' · ' + x.musicas.length + (x.musicas.length === 1 ? ' música' : ' músicas')));
+          li.appendChild(b);
+          ul.appendChild(li);
+        });
+      pane.appendChild(ul);
+      return;
+    }
+    pane.appendChild(btn('‹ Repertórios', 'set-back', function () { openSet = null; renderSets(); }));
+    var head = el('div', 'set-head');
+    head.appendChild(el('h3', '', r.nome || 'Sem nome'));
+    head.appendChild(el('span', 'a', fmtDate(r.data)));
+    pane.appendChild(head);
+    var acts = el('div', 'set-acts'), songs = setSongs(r);
+    var play = btn('▶ Tocar', 'primary', function () { playSet(r.id, 0); });
+    play.disabled = !songs.length;
+    acts.appendChild(play);
+    acts.appendChild(btn('Editar', '', function () { openSetDialog(r); }));
+    acts.appendChild(btn('Excluir', 'danger', function () { deleteSet(r); }));
+    pane.appendChild(acts);
+    if (!songs.length) { pane.appendChild(el('p', 'set-empty', 'Nenhuma música ainda. Toque em "Editar" para adicionar.')); return; }
+    var ol = el('ol', 'set-songs');
+    songs.forEach(function (s, i) {
+      var li = el('li'), b = btn('', '', function () { playSet(r.id, i); });
+      b.appendChild(el('span', 'n', String(i + 1)));
+      var t = el('span', 'tt');
+      t.appendChild(el('span', 't', s.title || 'Sem título'));
+      if (s.artist) t.appendChild(el('span', 'a', s.artist));
+      b.appendChild(t);
+      if (s.key) b.appendChild(el('span', 'k', s.key));
+      li.appendChild(b);
+      ol.appendChild(li);
+    });
+    pane.appendChild(ol);
+    var missing = r.musicas.length - songs.length;
+    if (missing) pane.appendChild(el('p', 'set-empty', missing + ' música(s) deste repertório foram excluídas.'));
+  }
+
+  /* ---------- repertório: tocar em sequência ---------- */
+
+  var stagePlay = null;   // { set, idx } quando o palco foi aberto por um repertório
+  function playSet(id, idx) {
+    var r = setById(id), songs = r ? setSongs(r) : [];
+    if (!songs.length) return;
+    idx = Math.max(0, Math.min(idx, songs.length - 1));
+    stagePlay = { set: id, idx: idx };
+    select(songs[idx].id);
+    setTab('view');
+    openStage();
+    $('stBody').scrollTop = 0;
+  }
+  function stepSet(d) {
+    if (!stagePlay) return;
+    var r = setById(stagePlay.set), songs = r ? setSongs(r) : [], i = stagePlay.idx + d;
+    if (i < 0 || i >= songs.length) return;
+    stagePlay.idx = i;
+    select(songs[i].id);
+    $('stBody').scrollTop = 0;
+    renderStage();
+  }
+  function renderSetBar() {
+    var bar = $('stSetBar'), r = stagePlay && setById(stagePlay.set), songs = r ? setSongs(r) : [];
+    if (!r || !songs.length) { stagePlay = null; bar.hidden = true; return; }
+    var i = songs.map(function (s) { return s.id; }).indexOf(cur().id);
+    if (i < 0) { bar.hidden = true; return; }   // abriu outra música fora do repertório
+    stagePlay.idx = i;
+    bar.hidden = false;
+    $('stSetPos').textContent = (r.nome || 'Repertório') + ' · ' + (i + 1) + ' de ' + songs.length;
+    $('stSetNext').textContent = i + 1 < songs.length ? 'Próxima: ' + (songs[i + 1].title || 'Sem título') : 'Última música';
+    $('stPrev').disabled = i === 0;
+    $('stNext').disabled = i + 1 >= songs.length;
+  }
+
+  /* ---------- repertório: montar e editar ---------- */
+
+  var setDraft = null;
+  function openSetDialog(r) {
+    setDraft = r ? clone(r) : fixSetlist({ nome: '', data: today(), musicas: [] });
+    setDraft.isNew = !r;
+    $('sTitle').textContent = r ? 'Editar repertório' : 'Novo repertório';
+    $('sName').value = setDraft.nome;
+    $('sDate').value = setDraft.data;
+    $('sFind').value = '';
+    $('sMsg').textContent = '';
+    renderSetItems();
+    renderSetFound();
+    var dlg = $('setDlg');
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    if (!r) $('sName').focus();
+  }
+  function renderSetItems() {
+    var ol = $('sItems');
+    ol.textContent = '';
+    if (!setDraft.musicas.length) { ol.appendChild(el('li', 'set-none', 'Nenhuma música ainda. Busque abaixo para adicionar.')); return; }
+    setDraft.musicas.forEach(function (id, i) {
+      var s = songById(id), li = el('li');
+      li.appendChild(el('span', 'n', String(i + 1)));
+      li.appendChild(el('span', 't', s ? (s.title || 'Sem título') + (s.key ? '  ·  ' + s.key : '') : '(música excluída)'));
+      var up = btn('↑', '', function () { moveItem(i, -1); }, 'Subir'), dn = btn('↓', '', function () { moveItem(i, 1); }, 'Descer');
+      up.disabled = i === 0;
+      dn.disabled = i === setDraft.musicas.length - 1;
+      li.appendChild(up);
+      li.appendChild(dn);
+      li.appendChild(btn('✕', 'danger', function () { setDraft.musicas.splice(i, 1); renderSetItems(); renderSetFound(); }, 'Tirar do repertório'));
+      ol.appendChild(li);
+    });
+  }
+  function moveItem(i, d) {
+    var m = setDraft.musicas, j = i + d;
+    if (j < 0 || j >= m.length) return;
+    var t = m[i]; m[i] = m[j]; m[j] = t;
+    renderSetItems();
+  }
+  function renderSetFound() {
+    var q = $('sFind').value.trim().toLowerCase(), ul = $('sFound');
+    ul.textContent = '';
+    var found = db.songs.filter(function (s) {
+      if (s.draft && !s.title.trim() && !s.text.trim()) return false;
+      return !q || (s.title + ' ' + s.artist).toLowerCase().indexOf(q) >= 0;
+    }).sort(function (a, b) { return (a.title || '').localeCompare(b.title || '', 'pt-BR', { sensitivity: 'base' }); });
+    if (!found.length) { ul.appendChild(el('li', 'set-none', db.songs.length ? 'Nenhuma música encontrada.' : 'Nenhuma música cadastrada.')); return; }
+    found.slice(0, 60).forEach(function (s) {
+      var inSet = setDraft.musicas.indexOf(s.id) >= 0, li = el('li');
+      var b = btn('', inSet ? 'in' : '', function () { setDraft.musicas.push(s.id); renderSetItems(); renderSetFound(); });
+      b.appendChild(el('span', 't', s.title || 'Sem título'));
+      b.appendChild(el('span', 'a', (s.artist ? s.artist + ' · ' : '') + (inSet ? 'já está na lista · adicionar de novo' : '+ adicionar')));
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+  }
+  function saveSetDialog() {
+    var nome = $('sName').value.trim();
+    if (!nome) { $('sMsg').textContent = 'Dê um nome ao repertório.'; $('sName').focus(); return; }
+    var isNew = setDraft.isNew;
+    delete setDraft.isNew;
+    setDraft.nome = nome;
+    setDraft.data = $('sDate').value || '';
+    var r = fixSetlist(setDraft), list = db.setlists || (db.setlists = []);
+    var i = list.map(function (x) { return x.id; }).indexOf(r.id);
+    if (i >= 0) list[i] = r; else list.push(r);
+    persistSet(r);
+    $('setDlg').close();
+    openSet = r.id;
+    listMode = 'sets';
+    renderList();
+    if (stageOn) renderStage();
+    toast(isNew ? 'Repertório criado.' : 'Repertório salvo.');
+  }
+  function deleteSet(r) {
+    var who = inGroup() ? ' para todos do grupo' : '';
+    if (!window.confirm('Excluir o repertório "' + (r.nome || 'Sem nome') + '"' + who + '? As músicas continuam guardadas.')) return;
+    db.setlists = db.setlists.filter(function (x) { return x.id !== r.id; });
+    if (inGroup()) Cloud.removeSetlist(r.id).catch(function () { toast('Sem conexão: a exclusão não chegou ao grupo.'); });
+    openSet = null;
+    save();
+    renderList();
+  }
+
+  // Grava o repertório (no grupo, quando houver); até a confirmação ele fica "pendente".
+  function persistSet(r) {
+    r.updated = Date.now();
+    if (inGroup()) { r.pending = true; pushSet(r); }
+    save();
+  }
+  var setInflight = {};
+  function pushSet(r) {
+    if (!Cloud.connected() || setInflight[r.id]) return;
+    var at = r.updated;
+    setInflight[r.id] = true;
+    Cloud.saveSetlist(r).then(function () {
+      delete setInflight[r.id];
+      if (r.updated === at) { delete r.pending; save(); } else pushSet(r);
+    }, function () {
+      delete setInflight[r.id];
+      toast('O grupo recusou o repertório "' + (r.nome || 'Sem nome') + '".');
+    });
+  }
+  function mergeRemoteSets(list) {
+    var local = {}, ids = {};
+    (db.setlists || []).forEach(function (r) { local[r.id] = r; });
+    var out = list.map(function (x) {
+      ids[x.id] = 1;
+      var l = local[x.id];
+      return l && l.pending ? l : fixSetlist(x);
+    });
+    (db.setlists || []).forEach(function (l) { if (!ids[l.id] && l.pending) out.push(l); });
+    db.setlists = out;
+    save();
+    if (listMode === 'sets') renderList();
+    if (stageOn) renderSetBar();
+  }
+  function flushSets() {
+    (db.setlists || []).forEach(function (r) { if (r.pending) pushSet(r); });
   }
 
   function fillForm() {
@@ -1118,6 +1393,20 @@
   });
   $('btnStage').addEventListener('click', openStage);
   $('btnGroup').addEventListener('click', openGroupDialog);
+  $('segSongs').addEventListener('click', function () { listMode = 'songs'; renderList(); });
+  $('segSets').addEventListener('click', function () { listMode = 'sets'; renderList(); });
+  $('sFind').addEventListener('input', renderSetFound);
+  $('sSave').addEventListener('click', saveSetDialog);
+  $('sCancel').addEventListener('click', function () { $('setDlg').close(); });
+  $('sName').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); saveSetDialog(); } });
+  $('stPrev').addEventListener('click', function () { stepSet(-1); });
+  $('stNext').addEventListener('click', function () { stepSet(1); });
+  // pedais de virar página costumam enviar as setas ou Page Up/Down
+  document.addEventListener('keydown', function (e) {
+    if (!stageOn || !stagePlay || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); stepSet(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); stepSet(-1); }
+  });
   $('gJoin').addEventListener('click', function () { joinGroup($('gCode').value); });
   $('gCode').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); joinGroup(this.value); } });
   $('gLeave').addEventListener('click', function () { if (leaveGroup(false)) { $('groupDlg').close(); toast('Você saiu do grupo.'); } });

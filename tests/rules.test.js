@@ -21,4 +21,7 @@ no(db.write('/grupos/louvor-2026/musicas/b3', { title: 'sem texto' }), 'música 
 no(db.write('/grupos/louvor-2026/musicas/b4', { text: 'x'.repeat(60001), updated: 1 }), 'texto gigante');
 no(db.write('/grupos/louvor-2026/lixo', { a: 1 }), 'outro caminho');
 no(db.write('/outra', 1), 'raiz');
+ok(db.write('/grupos/louvor-2026/repertorios/r1', { nome: 'Culto', data: '2026-10-18', musicas: ['a1'], updated: 3 }), 'gravar repertório');
+no(db.write('/grupos/louvor-2026/repertorios/r2', { musicas: [] , updated: 1 }), 'repertório sem nome');
+no(db.write('/grupos/inventado/repertorios/r3', { nome: 'x', updated: 1 }), 'repertório em grupo inexistente');
 console.log('regras ok');

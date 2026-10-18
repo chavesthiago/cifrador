@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Cifrador</title>
-  <link rel="stylesheet" href="css/style.css?v=20261018a">
+  <link rel="stylesheet" href="css/style.css?v=20261018b">
 </head>
 <body data-tab="view">
 
@@ -29,9 +29,14 @@
 
 <main class="app">
 
-  <aside class="pane list" aria-label="Músicas">
+  <aside class="pane list" aria-label="Músicas e repertórios">
+    <div class="lseg" role="tablist" aria-label="Mostrar">
+      <button type="button" id="segSongs" role="tab" aria-selected="true">Músicas</button>
+      <button type="button" id="segSets" role="tab" aria-selected="false">Repertórios</button>
+    </div>
     <input id="search" type="search" placeholder="Buscar música…" aria-label="Buscar música">
     <ul id="songList"></ul>
+    <div id="setPane" class="set-pane" hidden></div>
   </aside>
 
   <section class="pane editor" aria-label="Editor">
@@ -197,6 +202,11 @@
   </div>
   <nav id="stNav" class="st-nav" aria-label="Seções da música"></nav>
   <div id="stBody" class="st-body cifra"></div>
+  <footer id="stSetBar" class="st-setbar" hidden>
+    <button type="button" id="stPrev" aria-label="Música anterior">‹</button>
+    <div class="st-setinfo"><small id="stSetPos"></small><span id="stSetNext"></span></div>
+    <button type="button" id="stNext" aria-label="Próxima música">›</button>
+  </footer>
 </div>
 
 <dialog id="groupDlg" class="dlg" aria-labelledby="gTitle">
@@ -213,13 +223,30 @@
   </div>
 </dialog>
 
+<dialog id="setDlg" class="dlg set-dlg" aria-labelledby="sTitle">
+  <h2 id="sTitle">Repertório</h2>
+  <div class="set-meta">
+    <label class="dlg-field">Nome <input id="sName" type="text" autocomplete="off" placeholder="ex.: Culto de domingo"></label>
+    <label class="dlg-field">Data <input id="sDate" type="date"></label>
+  </div>
+  <p class="set-sub">Músicas, na ordem em que serão tocadas</p>
+  <ol id="sItems" class="set-items"></ol>
+  <label class="dlg-field">Adicionar música <input id="sFind" type="search" autocomplete="off" placeholder="Buscar pelo título ou artista"></label>
+  <ul id="sFound" class="set-found"></ul>
+  <p id="sMsg" class="dlg-msg" role="status"></p>
+  <div class="dlg-actions">
+    <button type="button" id="sCancel">Cancelar</button>
+    <button type="button" id="sSave" class="primary">Salvar</button>
+  </div>
+</dialog>
+
 <div id="measure" class="cifra" aria-hidden="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input id="file" type="file" hidden multiple accept=".txt,.cho,.chopro,.chordpro,.crd,.pro,.json,text/plain,application/json">
 
-<script src="js/config.js?v=20261018a"></script>
-<script src="js/music.js?v=20261018a"></script>
-<script src="js/cloud.js?v=20261018a"></script>
-<script src="js/app.js?v=20261018a"></script>
+<script src="js/config.js?v=20261018b"></script>
+<script src="js/music.js?v=20261018b"></script>
+<script src="js/cloud.js?v=20261018b"></script>
+<script src="js/app.js?v=20261018b"></script>
 </body>
 </html>

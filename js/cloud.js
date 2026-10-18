@@ -4,7 +4,7 @@
   'use strict';
 
   var SDK = 'https://www.gstatic.com/firebasejs/11.10.0/';
-  var app = null, songsRef = null, connRef = null, loading = null;
+  var app = null, songsRef = null, setsRef = null, connRef = null, loading = null;
 
   function config() { return root.CIFRADOR_FIREBASE || null; }
   function configured() {
@@ -63,6 +63,16 @@
           if (first) { first = false; reject(e); } else if (handlers.onError) handlers.onError(e);
           disconnect();
         });
+        // repertórios do grupo (listas de músicas por data)
+        setsRef = db.ref('grupos/' + code + '/repertorios');
+        setsRef.on('value', function (snap) {
+          var val = snap.val() || {}, list = [];
+          Object.keys(val).forEach(function (id) {
+            var r = val[id];
+            if (r && typeof r === 'object') { r.id = id; list.push(r); }
+          });
+          if (handlers.onSetlists) handlers.onSetlists(list);
+        }, function () { /* sem acesso aos repertórios: as músicas continuam funcionando */ });
         connRef = db.ref('.info/connected');
         connRef.on('value', function (snap) { if (handlers.onStatus) handlers.onStatus(snap.val() === true); });
       });
@@ -71,6 +81,7 @@
 
   function disconnect() {
     if (songsRef) { songsRef.off(); songsRef = null; }
+    if (setsRef) { setsRef.off(); setsRef = null; }
     if (connRef) { connRef.off(); connRef = null; }
   }
 
@@ -83,7 +94,17 @@
     return songsRef.child(id).remove();
   }
 
+  function saveSetlist(sl) {
+    if (!setsRef) return Promise.reject(new Error('offline'));
+    return setsRef.child(sl.id).set(clean(sl));
+  }
+  function removeSetlist(id) {
+    if (!setsRef) return Promise.reject(new Error('offline'));
+    return setsRef.child(id).remove();
+  }
+
   root.Cloud = {
+    saveSetlist: saveSetlist, removeSetlist: removeSetlist,
     configured: configured, validCode: validCode,
     connect: connect, disconnect: disconnect, saveSong: saveSong, removeSong: removeSong,
     connected: function () { return !!songsRef; }

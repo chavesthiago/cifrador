@@ -11,6 +11,11 @@
             ".validate": "newData.hasChildren(['text', 'updated']) && newData.child('text').isString() && newData.child('text').val().length <= 60000 && newData.child('updated').isNumber() && $id.length <= 40"
           }
         },
+        "repertorios": {
+          "$id": {
+            ".validate": "newData.hasChildren(['nome', 'updated']) && newData.child('nome').isString() && newData.child('nome').val().length <= 120 && newData.child('updated').isNumber() && $id.length <= 40"
+          }
+        },
         "$outro": {
           ".validate": "$outro === 'palco'"
         }
