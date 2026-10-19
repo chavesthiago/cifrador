@@ -190,4 +190,15 @@ assert.strictEqual(fm.sections[2].repeatOf, fm.sections[0]);
 assert.deepStrictEqual(M.sectionMemos(fm.sections[2]).map(l => l.text), ['só voz']);
 assert.strictEqual(M.transposeText('[FINAL] > Somente G', 2, false), '[FINAL] > Somente G');
 
+// links do YouTube
+[['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'dQw4w9WgXcQ', 0], ['https://youtu.be/dQw4w9WgXcQ?t=75', 'dQw4w9WgXcQ', 75],
+ ['https://m.youtube.com/watch?feature=share&v=dQw4w9WgXcQ&t=1m30s', 'dQw4w9WgXcQ', 90], ['https://www.youtube.com/shorts/dQw4w9WgXcQ', 'dQw4w9WgXcQ', 0],
+ ['https://music.youtube.com/watch?v=dQw4w9WgXcQ&list=x', 'dQw4w9WgXcQ', 0], ['dQw4w9WgXcQ', 'dQw4w9WgXcQ', 0]]
+  .forEach(([u, id, st]) => { const r = M.youtubeInfo(u); assert(r && r.id === id && r.start === st, u + ' ' + JSON.stringify(r)); });
+assert.strictEqual(M.youtubeInfo('https://vimeo.com/123'), null);
+assert.strictEqual(M.youtubeInfo(''), null);
+const yt = M.toChordPro({ title: 'T', artist: '', key: '', capo: '', tempo: '', youtube: 'https://youtu.be/dQw4w9WgXcQ', text: 'C\nx' });
+assert(/\{x_youtube: https:\/\/youtu.be\/dQw4w9WgXcQ\}/.test(yt));
+assert.strictEqual(M.fromChordPro(yt).youtube, 'https://youtu.be/dQw4w9WgXcQ');
+
 console.log('ok — todos os testes passaram');

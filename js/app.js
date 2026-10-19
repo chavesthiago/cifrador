@@ -32,7 +32,7 @@
 
   function newSong(base) {
     return Object.assign({
-      id: uid(), title: '', artist: '', key: '', capo: '', tempo: '', text: '', extra: [],
+      id: uid(), title: '', artist: '', key: '', capo: '', tempo: '', youtube: '', text: '', extra: [],
       opts: clone(DEFAULT_OPTS), updated: Date.now()
     }, base || {});
   }
@@ -41,7 +41,7 @@
     s.opts = Object.assign(clone(DEFAULT_OPTS), s.opts || {});
     s.text = Music.normalizeText(s.text);
     s.extra = Array.isArray(s.extra) ? s.extra.filter(function (c) { return typeof c === 'string' && Music.isChord(c); }) : [];
-    ['title', 'artist', 'key', 'capo', 'tempo'].forEach(function (k) { s[k] = s[k] == null ? '' : String(s[k]); });
+    ['title', 'artist', 'key', 'capo', 'tempo', 'youtube'].forEach(function (k) { s[k] = s[k] == null ? '' : String(s[k]); });
     return s;
   }
   function load() {
@@ -527,6 +527,7 @@
     body.style.setProperty('--fs', prefs.size + 'px');
     body.style.setProperty('--cf', FONTS[song.opts.font] || FONTS.sans);
     $('stTitle').textContent = song.title || 'Sem título';
+    renderPlayer(song);
     $('stKey').textContent = view.key || '—';
     $('stKey').hidden = !view.key && !view.shift;
     $('stKey').classList.toggle('shifted', !!view.shift);
@@ -610,8 +611,32 @@
       if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }, function () {});
     } catch (e) { /* sem suporte */ }
   }
+  // Vídeo do YouTube no palco: só carrega quando a pessoa toca no botão.
+  var ytShown = '';   // id da música com o vídeo aberto
+  function renderPlayer(song) {
+    var info = Music.youtubeInfo(song.youtube), btnY = $('stYt');
+    btnY.hidden = !info;
+    var open = !!info && ytShown === song.id;
+    btnY.setAttribute('aria-pressed', open);
+    $('stPlayer').hidden = !open;
+    var box = $('stVideo'), want = open ? info.id + ':' + info.start : '';
+    if (box.getAttribute('data-v') === want) return;   // não recarrega o vídeo que já está tocando
+    box.setAttribute('data-v', want);
+    box.textContent = '';
+    if (!open) return;
+    var f = document.createElement('iframe');
+    f.src = 'https://www.youtube-nocookie.com/embed/' + info.id + '?playsinline=1&rel=0&autoplay=1' + (info.start ? '&start=' + info.start : '');
+    f.title = 'Vídeo da música no YouTube';
+    f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    f.setAttribute('allowfullscreen', '');
+    box.appendChild(f);
+    $('stYtLink').href = 'https://www.youtube.com/watch?v=' + info.id + (info.start ? '&t=' + info.start + 's' : '');
+  }
+
   function closeStage(fromHistory) {
     if (!stageOn) return;
+    ytShown = '';
+    renderPlayer({ youtube: '' });
     stageOn = false;
     document.body.classList.remove('stage-on');
     $('stage').hidden = true;
@@ -1239,7 +1264,7 @@
   function fillForm() {
     var s = cur(), o = s.opts;
     $('fTitle').value = s.title; $('fArtist').value = s.artist; $('fKey').value = s.key;
-    $('fCapo').value = s.capo; $('fTempo').value = s.tempo; $('text').value = s.text;
+    $('fCapo').value = s.capo; $('fTempo').value = s.tempo; $('fYoutube').value = s.youtube; $('text').value = s.text;
     $('oCols').value = o.cols; $('oFont').value = o.font; $('oColor').value = o.color;
     $('oMargin').value = o.margin; $('oRepeats').value = o.repeats; $('oNotes').value = o.notes; $('oAcc').value = o.acc;
     $('oTetrads').checked = !!o.tetrads; $('oMemos').value = o.memos;
@@ -1426,7 +1451,7 @@
   }
 
   bindField('fTitle', 'title'); bindField('fArtist', 'artist'); bindField('fKey', 'key');
-  bindField('fCapo', 'capo'); bindField('fTempo', 'tempo'); bindField('text', 'text');
+  bindField('fCapo', 'capo'); bindField('fTempo', 'tempo'); bindField('fYoutube', 'youtube'); bindField('text', 'text');
   bindOpt('oCols', 'cols', true); bindOpt('oFont', 'font'); bindOpt('oColor', 'color');
   bindOpt('oMargin', 'margin', true); bindOpt('oRepeats', 'repeats'); bindOpt('oNotes', 'notes'); bindOpt('oAcc', 'acc'); bindOpt('oMemos', 'memos');
 
@@ -1603,6 +1628,11 @@
     if (sec) $('stBody').scrollTo({ top: Math.max(0, sec.offsetTop - 6), behavior: 'smooth' });
   });
   function setTheme(t) { stagePrefs().theme = t; save(); renderStage(); }
+  $('stYt').addEventListener('click', function () {
+    ytShown = ytShown === cur().id ? '' : cur().id;
+    renderPlayer(cur());
+  });
+  $('stYtClose').addEventListener('click', function () { ytShown = ''; renderPlayer(cur()); });
   $('stLight').addEventListener('click', function () { setTheme('light'); });
   $('stDark').addEventListener('click', function () { setTheme('dark'); });
   $('stChordColors').addEventListener('click', function (e) {

@@ -103,6 +103,7 @@ kbd, code {
 .meta label, .pv-tools label, .more-grid label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
 .meta .f-title, .meta .f-artist { grid-column: span 3; }
 .meta label:nth-child(n+3) { grid-column: span 2; }
+.meta label.f-yt { grid-column: 1 / -1; }
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 6px 12px; }
 .group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
@@ -450,3 +451,16 @@ body.role-musico .pane.editor, body.role-musico .palette, body.role-musico .pv-t
 .g-role small { color: var(--muted); width: 100%; padding-left: 22px; }
 .g-role[hidden], .dlg-field[hidden] { display: none; }
 .dlg-field + .dlg-field { margin-top: 8px; }
+
+/* ---------- YouTube no modo palco ---------- */
+.meta label.f-yt { grid-column: 1 / -1; }
+#stage .st-yt { background: #c4302b; border-color: #c4302b; color: #fff; }
+#stage .st-yt[aria-pressed=true] { background: var(--st-btn); border-color: var(--st-rule); color: #c4302b; }
+.st-player { flex: none; background: #000; border-bottom: 1px solid var(--st-rule); }
+.st-player[hidden] { display: none; }
+.st-video { position: relative; width: min(100%, calc(30vh * 16 / 9)); margin: 0 auto; aspect-ratio: 16 / 9; }
+.st-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.st-player-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 12px; background: var(--st-bar); font-size: 13px; }
+.st-player-bar a { color: var(--st-muted); }
+#stage .st-player-bar button { padding: 5px 10px; font-size: 13px; }
+#stage .st-opts[hidden] { display: none; }

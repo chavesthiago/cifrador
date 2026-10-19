@@ -444,7 +444,7 @@
     var out = [];
     function dir(name, val) { if (val !== '' && val != null) out.push('{' + name + ': ' + val + '}'); }
     dir('title', song.title); dir('artist', song.artist); dir('key', song.key);
-    dir('capo', song.capo); dir('tempo', song.tempo);
+    dir('capo', song.capo); dir('tempo', song.tempo); dir('x_youtube', song.youtube);
     parse(song.text).sections.forEach(function (s) {
       var kind = sectionKind(s.label);
       out.push('');
@@ -480,7 +480,7 @@
   }
 
   function fromChordPro(src) {
-    var song = { title: '', artist: '', key: '', capo: '', tempo: '', text: '' }, out = [];
+    var song = { title: '', artist: '', key: '', capo: '', tempo: '', youtube: '', text: '' }, out = [];
     var defaults = { chorus: 'Refrão', verse: 'Verso', bridge: 'Ponte', tab: 'Tablatura', grid: 'Grade' };
     function label(v) { return (v || '').replace(/^label\s*=\s*/i, '').replace(/^["']|["']$/g, '').trim(); }
     normalizeText(src).split('\n').forEach(function (line) {
@@ -490,7 +490,8 @@
         var name = d[1].toLowerCase(), val = d[2] || '';
         var alias = { t: 'title', st: 'artist', subtitle: 'artist', soc: 'start_of_chorus', sov: 'start_of_verse', sob: 'start_of_bridge' };
         name = alias[name] || name;
-        if (name === 'title' || name === 'artist' || name === 'key' || name === 'capo' || name === 'tempo') {
+        if (name === 'x_youtube') name = 'youtube';
+        if (name === 'title' || name === 'artist' || name === 'key' || name === 'capo' || name === 'tempo' || name === 'youtube') {
           if (!song[name]) song[name] = val;
         } else if (name.indexOf('start_of_') === 0) {
           var kind = name.slice(9);
@@ -524,7 +525,20 @@
     return song;
   }
 
+  // Link do YouTube → id do vídeo (11 caracteres) e segundo de início, se houver.
+  function youtubeInfo(url) {
+    var u = String(url || '').trim(), m;
+    if (!u) return null;
+    m = /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/))([A-Za-z0-9_-]{11})/.exec(u) ||
+      /^([A-Za-z0-9_-]{11})$/.exec(u);
+    if (!m) return null;
+    var t = /[?&#](?:t|start)=(?:(\d+)h)?(?:(\d+)m)?(\d+)?s?/.exec(u), start = 0;
+    if (t) start = (+(t[1] || 0)) * 3600 + (+(t[2] || 0)) * 60 + (+(t[3] || 0));
+    return { id: m[1], start: start };
+  }
+
   var api = {
+    youtubeInfo: youtubeInfo,
     isChord: isChord, isChordLine: isChordLine, classify: classify, normalizeText: normalizeText,
     transposeChord: transposeChord, transposeChordLine: transposeChordLine,
     transposeNotes: transposeNotes, renderNotes: renderNotes,

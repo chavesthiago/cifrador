@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Cifrador</title>
-  <link rel="stylesheet" href="css/style.css?v=20261019d">
+  <link rel="stylesheet" href="css/style.css?v=20261019e">
 </head>
 <body data-tab="view">
 
@@ -46,6 +46,7 @@
       <label class="extra-tool">Tom <input id="fKey" type="text" autocomplete="off" placeholder="ex.: G"></label>
       <label class="extra-tool">Capotraste <input id="fCapo" type="number" min="0" max="12" placeholder="—"></label>
       <label class="extra-tool">Andamento <input id="fTempo" type="number" min="20" max="300" placeholder="bpm"></label>
+      <label class="extra-tool f-yt">Link do YouTube <input id="fYoutube" type="url" inputmode="url" autocomplete="off" placeholder="https://youtu.be/…"></label>
     </div>
 
     <div class="toolbar">
@@ -180,6 +181,7 @@
     <button type="button" id="stBack" class="st-icon" aria-label="Voltar">‹</button>
     <div id="stTitle" class="st-title"></div>
     <span id="stKey" class="st-key" title="Tom"></span>
+    <button type="button" id="stYt" class="st-opts st-yt" aria-label="Ouvir no YouTube" title="Ouvir no YouTube" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></button>
     <button type="button" id="stMore" class="st-opts" aria-label="Cores, tamanho da letra e tom" title="Cores, tamanho da letra e tom"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></button>
   </header>
   <div id="stMenu" class="st-menu" hidden>
@@ -199,6 +201,10 @@
       <button type="button" id="stDown" aria-label="Descer meio tom">−½</button><button type="button" id="stUp" aria-label="Subir meio tom">+½</button></div>
     <div class="st-row st-note"><span></span><small id="stShift">Tom original</small>
       <button type="button" id="stReset" hidden>Voltar ao original</button></div>
+  </div>
+  <div id="stPlayer" class="st-player" hidden>
+    <div class="st-video" id="stVideo"></div>
+    <div class="st-player-bar"><a id="stYtLink" target="_blank" rel="noopener">Abrir no YouTube</a><button type="button" id="stYtClose">Fechar vídeo</button></div>
   </div>
   <nav id="stNav" class="st-nav" aria-label="Seções da música"></nav>
   <div id="stBody" class="st-body cifra"></div>
@@ -257,9 +263,9 @@
 <div id="toast" role="status" aria-live="polite"></div>
 <input id="file" type="file" hidden multiple accept=".txt,.cho,.chopro,.chordpro,.crd,.pro,.json,text/plain,application/json">
 
-<script src="js/config.js?v=20261019d"></script>
-<script src="js/music.js?v=20261019d"></script>
-<script src="js/cloud.js?v=20261019d"></script>
-<script src="js/app.js?v=20261019d"></script>
+<script src="js/config.js?v=20261019e"></script>
+<script src="js/music.js?v=20261019e"></script>
+<script src="js/cloud.js?v=20261019e"></script>
+<script src="js/app.js?v=20261019e"></script>
 </body>
 </html>
