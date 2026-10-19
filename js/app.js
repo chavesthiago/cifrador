@@ -1433,6 +1433,28 @@
   // Depois de digitar ou transpor, o "Desfazer" da folha não pode trazer um texto antigo de volta.
   $('text').addEventListener('input', function () { undoStack.length = 0; applySel(); });
 
+  // Colchetes de seção: "[" já fecha com "]"; e o "~" que alguns teclados brasileiros
+  // soltam antes do "]" (tecla de acento) é descartado na linha da seção.
+  $('text').addEventListener('beforeinput', function (e) {
+    if (e.inputType !== 'insertText' || !e.data) return;
+    var ta = this, v = ta.value, a = ta.selectionStart, b = ta.selectionEnd;
+    var ls = v.lastIndexOf('\n', a - 1) + 1, before = v.slice(ls, a);
+    var close = /^~?\]$/.test(e.data), sectionLine = /^\s*\[[^\]]*$/.test(before.replace(/~$/, ''));
+    if (e.data === '[' && a === b && !/\S/.test(v.charAt(a) || '')) {
+      e.preventDefault();
+      ta.setRangeText('[]', a, b, 'start');
+      ta.selectionStart = ta.selectionEnd = a + 1;
+    } else if (close && sectionLine) {
+      e.preventDefault();
+      var from = /~$/.test(before) ? a - 1 : a;   // tira o "~" que veio junto
+      if (v.charAt(b) === ']') { ta.setRangeText('', from, a, 'end'); ta.selectionStart = ta.selectionEnd = from + 1; }
+      else ta.setRangeText(']', from, b, 'end');
+    } else return;
+    cur().text = ta.value;
+    undoStack.length = 0;
+    touch();
+  });
+
   $('text').addEventListener('keydown', function (e) {
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       e.preventDefault(); // Alt + seta também é "voltar" no navegador
