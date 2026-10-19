@@ -18,6 +18,7 @@ Abra o `index.html` no navegador, ou publique a pasta pelo GitHub Pages (Setting
 - **Folha**: A4 em 1 ou 2 colunas, tamanho da letra, margem, cor dos acordes e o botão "Caber em 1 página".
 - **Importar**: letra em `.txt`, cifra em ChordPro (`.cho`) ou backup (`.json`).
 - **Grupo online**: com o código do grupo (botão "Grupo"), as músicas ficam no Firebase e todos que usam o mesmo código veem e editam as mesmas músicas. Sem conexão, as alterações ficam no aparelho e são enviadas quando a internet volta.
+- **Perfis no grupo**: todo aparelho entra no grupo como **músico**, que vê as músicas e os repertórios, usa o modo palco e imprime, sem poder alterar nada. Com a **senha de editor** do grupo, o aparelho passa a **editor**, com acesso total. A primeira pessoa a entrar como editor cria a senha; editores podem trocá-la pelo botão do grupo. A proteção é contra alterações por engano: quem tem o código do grupo e conhecimento técnico ainda consegue gravar no banco.
 - **Sem internet**: depois da primeira visita, o Cifrador abre mesmo sem conexão, com a última cópia das músicas. Ao sair do grupo, ele oferece guardar uma cópia das músicas do grupo no aparelho.
 - **Salvar**: as músicas ficam guardadas no navegador. "Salvar arquivo" gera um `.cho` (ChordPro) da música aberta e "Backup" gera um `.json` com todas.
 

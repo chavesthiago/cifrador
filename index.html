@@ -4,17 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Cifrador</title>
-  <link rel="stylesheet" href="css/style.css?v=20261019b">
+  <link rel="stylesheet" href="css/style.css?v=20261019c">
 </head>
 <body data-tab="view">
 
 <header class="topbar">
   <div class="brand"><span class="brand-mark">♪</span> Cifrador</div>
   <div class="actions">
-    <button id="btnNew" type="button">Nova música</button>
-    <button id="btnImport" type="button" title="Abrir letra (.txt), cifra ChordPro (.cho) ou backup (.json)">Importar</button>
-    <button id="btnExport" type="button" title="Salvar esta música como arquivo ChordPro">Salvar arquivo</button>
-    <button id="btnBackup" type="button" title="Baixar um arquivo com todas as músicas">Backup</button>
+    <button id="btnNew" type="button" class="ed-only">Nova música</button>
+    <button id="btnImport" type="button" class="ed-only" title="Abrir letra (.txt), cifra ChordPro (.cho) ou backup (.json)">Importar</button>
+    <button id="btnExport" type="button" class="ed-only" title="Salvar esta música como arquivo ChordPro">Salvar arquivo</button>
+    <button id="btnBackup" type="button" class="ed-only" title="Baixar um arquivo com todas as músicas">Backup</button>
     <button id="btnGroup" type="button" class="group-btn">Grupo</button>
     <button id="btnStage" type="button" title="Cifra limpa para tocar pelo celular, com atalhos de seção">Modo palco</button>
     <button id="btnPrint" type="button" class="primary">Imprimir / PDF</button>
@@ -23,7 +23,7 @@
 
 <nav class="tabs" aria-label="Telas">
   <button type="button" data-tab="list">Músicas</button>
-  <button type="button" data-tab="edit">Editar</button>
+  <button type="button" data-tab="edit" class="ed-only">Editar</button>
   <button type="button" data-tab="view">Cifra</button>
 </nav>
 
@@ -212,12 +212,25 @@
 <dialog id="groupDlg" class="dlg" aria-labelledby="gTitle">
   <h2 id="gTitle">Grupo</h2>
   <p id="gInfo"></p>
-  <label class="dlg-field">Código do grupo
+  <label id="gCodeBox" class="dlg-field">Código do grupo
     <input id="gCode" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex.: louvor-sede">
+  </label>
+  <fieldset id="gRoleBox" class="g-role">
+    <legend>Entrar como</legend>
+    <label><input type="radio" name="gRole" value="musico" checked> <b>Músico</b> <small>vê as músicas, modo palco e impressão</small></label>
+    <label><input type="radio" name="gRole" value="editor"> <b>Editor</b> <small>cria e altera músicas e repertórios</small></label>
+  </fieldset>
+  <label id="gPassBox" class="dlg-field" hidden><span id="gPassLabel">Senha de editor</span>
+    <input id="gPass" type="password" autocomplete="off">
+  </label>
+  <label id="gPass2Box" class="dlg-field" hidden>Repita a senha
+    <input id="gPass2" type="password" autocomplete="off">
   </label>
   <p id="gMsg" class="dlg-msg" role="status"></p>
   <div class="dlg-actions">
     <button type="button" id="gLeave" class="danger">Sair do grupo</button>
+    <button type="button" id="gRole"></button>
+    <button type="button" id="gChangePw">Trocar senha</button>
     <button type="button" id="gClose">Fechar</button>
     <button type="button" id="gJoin" class="primary">Entrar</button>
   </div>
@@ -244,9 +257,9 @@
 <div id="toast" role="status" aria-live="polite"></div>
 <input id="file" type="file" hidden multiple accept=".txt,.cho,.chopro,.chordpro,.crd,.pro,.json,text/plain,application/json">
 
-<script src="js/config.js?v=20261019b"></script>
-<script src="js/music.js?v=20261019b"></script>
-<script src="js/cloud.js?v=20261019b"></script>
-<script src="js/app.js?v=20261019b"></script>
+<script src="js/config.js?v=20261019c"></script>
+<script src="js/music.js?v=20261019c"></script>
+<script src="js/cloud.js?v=20261019c"></script>
+<script src="js/app.js?v=20261019c"></script>
 </body>
 </html>

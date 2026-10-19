@@ -439,3 +439,14 @@ body.stage-on > .topbar, body.stage-on > .tabs, body.stage-on > .app { visibilit
 .st-setinfo { flex: 1; min-width: 0; text-align: center; display: flex; flex-direction: column; }
 .st-setinfo small { color: var(--st-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .st-setinfo span { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- perfis ---------- */
+body.role-musico .ed-only { display: none !important; }
+body.role-musico .pane.editor, body.role-musico .palette, body.role-musico .pv-tools { display: none !important; }
+@media (min-width: 900px) { body.role-musico .app { grid-template-columns: 220px 1fr; } }
+.g-role { border: 1px solid var(--line); border-radius: 8px; margin: 10px 0 4px; padding: 6px 10px 8px; }
+.g-role legend { font-size: 13px; color: var(--muted); padding: 0 4px; }
+.g-role label { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; padding: 4px 0; cursor: pointer; }
+.g-role small { color: var(--muted); width: 100%; padding-left: 22px; }
+.g-role[hidden], .dlg-field[hidden] { display: none; }
+.dlg-field + .dlg-field { margin-top: 8px; }

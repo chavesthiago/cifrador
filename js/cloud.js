@@ -4,7 +4,7 @@
   'use strict';
 
   var SDK = 'https://www.gstatic.com/firebasejs/11.10.0/';
-  var app = null, songsRef = null, setsRef = null, connRef = null, loading = null;
+  var app = null, songsRef = null, setsRef = null, connRef = null, loading = null, current = '';
 
   function config() { return root.CIFRADOR_FIREBASE || null; }
   function configured() {
@@ -47,6 +47,7 @@
     if (!validCode(code)) return Promise.reject(new Error('code'));
     return loadSdk().then(function () {
       var db = root.firebase.database(), first = true;
+      current = code;
       return new Promise(function (resolve, reject) {
         songsRef = db.ref('grupos/' + code + '/musicas');
         songsRef.on('value', function (snap) {
@@ -103,7 +104,24 @@
     return setsRef.child(id).remove();
   }
 
+  // Senha de editor do grupo: só o resumo (SHA-256) fica no banco.
+  function editorRef() {
+    if (!current || !songsRef) return null;
+    return root.firebase.database().ref('grupos/' + current + '/editor');
+  }
+  function getEditorHash() {
+    var ref = editorRef();
+    if (!ref) return Promise.reject(new Error('offline'));
+    return ref.once('value').then(function (snap) { return snap.val() || ''; });
+  }
+  function setEditorHash(h) {
+    var ref = editorRef();
+    if (!ref) return Promise.reject(new Error('offline'));
+    return ref.set(h);
+  }
+
   root.Cloud = {
+    getEditorHash: getEditorHash, setEditorHash: setEditorHash,
     saveSetlist: saveSetlist, removeSetlist: removeSetlist,
     configured: configured, validCode: validCode,
     connect: connect, disconnect: disconnect, saveSong: saveSong, removeSong: removeSong,

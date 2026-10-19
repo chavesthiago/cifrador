@@ -421,6 +421,7 @@
     render();
   }
   function undo() {
+    if (!canEdit()) return;
     var u = undoStack.pop();
     while (u && u.id !== cur().id) u = undoStack.pop();
     if (!u) { applySel(); return; }
@@ -432,6 +433,7 @@
   }
 
   function placeChord(chord) {
+    if (!canEdit()) return;
     if (!sel) { toast('Clique na letra onde o acorde entra e depois no acorde, ou arraste o acorde até a letra.'); return; }
     var ln = sel.type === 'char' ? sel.ln : sel.cl + 1;
     var r = Music.setChordAt(cur().text, ln, sel.col, chord);
@@ -439,7 +441,7 @@
     commit(r.text);
   }
   function dropOn(target) {
-    if (!drag || !target) return;
+    if (!drag || !target || !canEdit()) return;
     var ln = Number(target.getAttribute('data-ln')), col = Number(target.getAttribute('data-c'));
     var r = drag.from
       ? Music.moveChord(cur().text, drag.from.cl, drag.from.col, ln, col)
@@ -448,13 +450,13 @@
     commit(r.text);
   }
   function eraseSel() {
-    if (!sel || sel.type !== 'chord') return;
+    if (!sel || sel.type !== 'chord' || !canEdit()) return;
     var r = Music.removeChordAt(cur().text, sel.cl, sel.col);
     sel = null;
     commit(r.text);
   }
   function stepSel(d) {
-    if (!sel || sel.type !== 'chord' || sel.col + d < 0) return;
+    if (!sel || sel.type !== 'chord' || sel.col + d < 0 || !canEdit()) return;
     var r = Music.moveChord(cur().text, sel.cl, sel.col, sel.cl + 1, sel.col + d);
     sel = { type: 'chord', cl: r.cl, col: r.col };
     commit(r.text);
@@ -629,7 +631,7 @@
 
   // Grava no grupo pouco depois da última alteração; até a confirmação a música fica "pendente".
   function queueSave(s) {
-    if (!inGroup()) return;
+    if (!inGroup() || !canEdit()) return;
     s.pending = true;
     clearTimeout(saveTimers[s.id]);
     saveTimers[s.id] = setTimeout(function () { pushSong(s); }, 700);
@@ -693,7 +695,7 @@
       if (!memoryOnly) saved.textContent = 'Salvo neste navegador';
       return;
     }
-    btn.textContent = '● ' + db.group;
+    btn.textContent = '● ' + db.group + ' · ' + (db.role === 'editor' ? 'Editor' : 'Músico');
     btn.title = online ? 'Conectado ao grupo' : 'Sem conexão com o grupo';
     var n = pendingCount();
     saved.textContent = !online
@@ -724,7 +726,30 @@
     });
   }
 
-  function joinGroup(code) {
+  // Ao virar editor, oferece enviar ao grupo as músicas e repertórios que já estavam neste aparelho.
+  function offerUpload() {
+    var personal = db.personal || [], personalSets = db.personalSets || [];
+    var mine = personal.filter(function (s) {
+      return s.text.trim() && !db.songs.some(function (g) { return g.id === s.id; });
+    });
+    if (!mine.length || !window.confirm('Enviar também as ' + mine.length + ' música(s) deste aparelho para o grupo?')) return;
+    mine.forEach(function (s) {
+      var copy = fixSong(clone(s));
+      db.songs.push(copy);
+      queueSave(copy);
+    });
+    db.songs = db.songs.filter(function (s) { return !(s.draft && !s.text.trim()); });
+    if (!db.songs.some(function (s) { return s.id === db.current; })) db.current = db.songs[0].id;
+    personalSets.forEach(function (r) {   // os repertórios deste aparelho vão junto
+      if (db.setlists.some(function (g) { return g.id === r.id; })) return;
+      var copy = fixSetlist(clone(r));
+      db.setlists.push(copy);
+      persistSet(copy);
+    });
+    save(); fillForm(); renderList(); render();
+  }
+
+  function joinGroup(code, wantEditor, pass) {
     if (joining) return;
     var msg = $('gMsg'), previous = db.group;
     code = code.trim().toLowerCase();
@@ -743,29 +768,17 @@
     Cloud.connect(code, cloudHandlers).then(function () {
       joining = false;
       online = true;
-      $('groupDlg').close();
-      var mine = personal.filter(function (s) {
-        return s.text.trim() && !db.songs.some(function (g) { return g.id === s.id; });
-      });
-      if (mine.length && window.confirm('Entrou no grupo "' + code + '". Enviar também as ' + mine.length +
-          ' música(s) deste aparelho para o grupo?')) {
-        mine.forEach(function (s) {
-          var copy = fixSong(clone(s));
-          db.songs.push(copy);
-          queueSave(copy);
-        });
-        db.songs = db.songs.filter(function (s) { return !(s.draft && !s.text.trim()); });
-        if (!db.songs.some(function (s) { return s.id === db.current; })) db.current = db.songs[0].id;
-        personalSets.forEach(function (r) {   // os repertórios deste aparelho vão junto
-          if (db.setlists.some(function (g) { return g.id === r.id; })) return;
-          var copy = fixSetlist(clone(r));
-          db.setlists.push(copy);
-          persistSet(copy);
-        });
-        save(); fillForm(); renderList(); render();
-      }
+      db.role = 'musico';   // todo aparelho entra como músico; editor só com a senha
+      save();
+      applyRole();
       toast('Conectado ao grupo "' + code + '".');
       showCloud();
+      if (wantEditor) {
+        afterEditor = offerUpload;
+        dlgMode = 'becomeEditor';
+        renderGroupDlg();
+        becomeEditor(pass);
+      } else $('groupDlg').close();
     }, function (e) {
       joining = false;
       db.group = previous || '';
@@ -796,6 +809,7 @@
     Cloud.disconnect();
     online = false;
     db.group = '';
+    delete db.role;
     var mine = (db.personal || []).slice();
     if (keep || !mine.length) {
       group.forEach(function (g) {
@@ -824,23 +838,119 @@
     if (!db.songs.some(function (s) { return s.id === db.current; })) db.current = db.songs[0].id;
     sel = null;
     save(); fillForm(); renderList(); render(); showCloud();
+    applyRole();
     return true;
   }
 
-  function openGroupDialog() {
-    var dlg = $('groupDlg'), ok = Cloud.configured();
-    $('gCode').value = db.group || '';
-    $('gMsg').textContent = '';
-    $('gInfo').textContent = !ok
+  /* ---------- perfis: músico (só vê) e editor (acesso total) ---------- */
+
+  function canEdit() { return !inGroup() || db.role === 'editor'; }
+  function applyRole() {
+    var mus = !canEdit();
+    document.body.classList.toggle('role-musico', mus);
+    if (mus) {
+      sel = null;
+      if (document.body.getAttribute('data-tab') === 'edit') setTab('view');
+    }
+    renderList();
+    render();
+    showCloud();
+  }
+  function sha256(text) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    });
+  }
+  function editorHash(pass) { return sha256('cifrador:' + db.group + ':' + pass); }
+
+  var dlgMode = 'join', afterEditor = null;
+  function roleChoice() { var r = document.querySelector('input[name=gRole]:checked'); return r ? r.value : 'musico'; }
+
+  function becomeEditor(pass) {
+    var msg = $('gMsg');
+    if (!pass) { msg.textContent = 'Digite a senha de editor.'; $('gPass').focus(); return; }
+    msg.textContent = 'Conferindo…';
+    Cloud.getEditorHash().then(function (h) {
+      if (!h) {
+        dlgMode = 'newPassword';
+        renderGroupDlg('Este grupo ainda não tem senha de editor. Crie uma agora: ela vale para todos os editores do grupo.');
+        return;
+      }
+      return editorHash(pass).then(function (mine) {
+        if (mine !== h) { msg.textContent = 'Senha incorreta.'; $('gPass').select(); return; }
+        setRole('editor');
+      });
+    }).catch(function () { msg.textContent = 'Não foi possível conferir a senha. Verifique a internet.'; });
+  }
+  function setRole(r) {
+    db.role = r;
+    save();
+    applyRole();
+    if (r === 'editor') {
+      $('groupDlg').close();
+      toast('Edição liberada neste aparelho.');
+      var f = afterEditor;
+      afterEditor = null;
+      if (f) f();
+    }
+  }
+  function savePassword() {
+    var a = $('gPass').value, b = $('gPass2').value, msg = $('gMsg'), creating = dlgMode === 'newPassword';
+    if (a.length < 4) { msg.textContent = 'Use pelo menos 4 caracteres.'; return; }
+    if (a !== b) { msg.textContent = 'As duas senhas não são iguais.'; return; }
+    msg.textContent = 'Salvando…';
+    editorHash(a).then(Cloud.setEditorHash).then(function () {
+      if (creating) setRole('editor');
+      else { $('groupDlg').close(); toast('Senha de editor trocada.'); }
+    }, function () { msg.textContent = 'Não foi possível salvar a senha. Confira a internet e se as regras do banco foram atualizadas.'; });
+  }
+
+  function renderGroupDlg(info) {
+    var ok = Cloud.configured(), m = dlgMode, editor = db.role === 'editor';
+    function show(id, on) { $(id).hidden = !on; }
+    $('gInfo').textContent = info || (!ok
       ? 'O banco online ainda não foi configurado neste Cifrador. Enquanto isso, as músicas ficam guardadas só neste navegador.'
-      : db.group
-        ? 'Você está no grupo "' + db.group + '". As músicas ficam online e todos com o mesmo código veem as mesmas músicas. As músicas pessoais deste aparelho voltam quando você sair do grupo.'
-        : 'Com o código do grupo, as músicas ficam guardadas online e todos que usam o mesmo código veem e editam as mesmas músicas.';
+      : m === 'join' ? 'Com o código do grupo, as músicas ficam guardadas online e todos que usam o mesmo código veem as mesmas músicas.'
+      : m === 'member' ? 'Você está no grupo "' + db.group + '" como ' + (editor
+          ? 'editor: pode criar e alterar músicas e repertórios.'
+          : 'músico: vê as músicas, usa o modo palco e imprime, sem alterar nada.') +
+        ' As músicas pessoais deste aparelho voltam quando você sair do grupo.'
+      : m === 'becomeEditor' ? 'Digite a senha de editor do grupo para liberar a edição neste aparelho.'
+      : m === 'changePassword' ? 'Escolha a nova senha de editor. Ela passa a valer para todos os editores do grupo.' : '');
+    show('gCodeBox', m === 'join');
+    show('gRoleBox', m === 'join' && ok);
+    var pass = (m === 'join' && roleChoice() === 'editor') || m === 'becomeEditor' || m === 'newPassword' || m === 'changePassword';
+    var twice = m === 'newPassword' || m === 'changePassword';
+    show('gPassBox', pass && ok);
+    show('gPass2Box', twice);
+    $('gPassLabel').textContent = twice ? 'Nova senha de editor' : 'Senha de editor';
+    show('gLeave', m === 'member');
+    show('gRole', m === 'member');
+    $('gRole').textContent = editor ? 'Usar como músico' : 'Entrar como editor';
+    show('gChangePw', m === 'member' && editor);
+    show('gJoin', m !== 'member');
+    $('gJoin').textContent = m === 'join' ? 'Entrar' : m === 'becomeEditor' ? 'Confirmar' : m === 'newPassword' ? 'Criar senha' : 'Salvar senha';
     $('gJoin').disabled = !ok;
     $('gCode').disabled = !ok;
-    $('gLeave').hidden = !db.group;
+  }
+
+  function openGroupDialog() {
+    var dlg = $('groupDlg');
+    dlgMode = db.group ? 'member' : 'join';
+    afterEditor = null;
+    $('gCode').value = db.group || '';
+    $('gPass').value = '';
+    $('gPass2').value = '';
+    $('gMsg').textContent = '';
+    renderGroupDlg();
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
-    if (ok && !db.group) $('gCode').focus();
+    if (Cloud.configured() && !db.group) $('gCode').focus();
+  }
+  function groupAction() {
+    var m = dlgMode;
+    if (m === 'join') joinGroup($('gCode').value, roleChoice() === 'editor', $('gPass').value);
+    else if (m === 'becomeEditor') becomeEditor($('gPass').value);
+    else savePassword();
   }
 
   /* ---------- lista ---------- */
@@ -881,10 +991,12 @@
         g.addEventListener('click', openGroupDialog);
         li0.appendChild(g);
       }
-      var nb = el('button', '', 'Nova música');
-      nb.type = 'button';
-      nb.addEventListener('click', function () { $('btnNew').click(); });
-      li0.appendChild(nb);
+      if (canEdit()) {
+        var nb = el('button', '', 'Nova música');
+        nb.type = 'button';
+        nb.addEventListener('click', function () { $('btnNew').click(); });
+        li0.appendChild(nb);
+      }
       ul.appendChild(li0);
       return;
     }
@@ -914,10 +1026,10 @@
     var r = openSet && setById(openSet);
     if (!r) {
       openSet = null;
-      pane.appendChild(btn('+ Novo repertório', 'primary set-new', function () { openSetDialog(null); }));
+      if (canEdit()) pane.appendChild(btn('+ Novo repertório', 'primary set-new', function () { openSetDialog(null); }));
       if (!list.length) {
-        pane.appendChild(el('p', 'set-empty', 'Monte a lista de músicas de um culto ou ensaio, na ordem em que serão tocadas.' +
-          (inGroup() ? ' Todos do grupo veem os repertórios.' : '')));
+        pane.appendChild(el('p', 'set-empty', !canEdit() ? 'O grupo ainda não tem repertórios.'
+          : 'Monte a lista de músicas de um culto ou ensaio, na ordem em que serão tocadas.' + (inGroup() ? ' Todos do grupo veem os repertórios.' : '')));
         return;
       }
       var ul = el('ul', 'set-list'), now = today();
@@ -941,8 +1053,10 @@
     var play = btn('▶ Tocar', 'primary', function () { playSet(r.id, 0); });
     play.disabled = !songs.length;
     acts.appendChild(play);
-    acts.appendChild(btn('Editar', '', function () { openSetDialog(r); }));
-    acts.appendChild(btn('Excluir', 'danger', function () { deleteSet(r); }));
+    if (canEdit()) {
+      acts.appendChild(btn('Editar', '', function () { openSetDialog(r); }));
+      acts.appendChild(btn('Excluir', 'danger', function () { deleteSet(r); }));
+    }
     pane.appendChild(acts);
     if (!songs.length) { pane.appendChild(el('p', 'set-empty', 'Nenhuma música ainda. Toque em "Editar" para adicionar.')); return; }
     var ol = el('ol', 'set-songs');
@@ -1001,6 +1115,7 @@
 
   var setDraft = null;
   function openSetDialog(r) {
+    if (!canEdit()) return;
     setDraft = r ? clone(r) : fixSetlist({ nome: '', data: today(), musicas: [] });
     setDraft.isNew = !r;
     $('sTitle').textContent = r ? 'Editar repertório' : 'Novo repertório';
@@ -1073,6 +1188,7 @@
     toast(isNew ? 'Repertório criado.' : 'Repertório salvo.');
   }
   function deleteSet(r) {
+    if (!canEdit()) return;
     var who = inGroup() ? ' para todos do grupo' : '';
     if (!window.confirm('Excluir o repertório "' + (r.nome || 'Sem nome') + '"' + who + '? As músicas continuam guardadas.')) return;
     db.setlists = db.setlists.filter(function (x) { return x.id !== r.id; });
@@ -1084,6 +1200,7 @@
 
   // Grava o repertório (no grupo, quando houver); até a confirmação ele fica "pendente".
   function persistSet(r) {
+    if (!canEdit()) return;
     r.updated = Date.now();
     if (inGroup()) { r.pending = true; pushSet(r); }
     save();
@@ -1133,6 +1250,7 @@
     save(); fillForm(); renderList(); render();
   }
   function touch() {
+    if (!canEdit()) { renderSoon(); return; }   // músico: nada é gravado
     var s = cur();
     s.updated = Date.now();
     delete s.draft;
@@ -1166,6 +1284,7 @@
   }
 
   function transpose(n) {
+    if (!canEdit()) return;
     var s = cur();
     var key = s.key.trim() || Music.firstChord(s.text);
     var flat = s.opts.acc === 'flat' || (s.opts.acc === 'auto' && Music.prefersFlat(key, n));
@@ -1374,6 +1493,7 @@
   });
   document.addEventListener('dragend', function () { drag = null; clearOver(); });
   $('pvScroll').addEventListener('click', function (e) {
+    if (!canEdit()) return;
     var ch = e.target.closest('.ch[data-cl]'), c = ch ? null : targetAt(e);
     if (ch) sel = { type: 'chord', cl: Number(ch.getAttribute('data-cl')), col: Number(ch.getAttribute('data-col')) };
     else if (c) sel = { type: 'char', ln: Number(c.getAttribute('data-ln')), col: Number(c.getAttribute('data-c')) };
@@ -1425,8 +1545,26 @@
     if (e.key === 'ArrowRight') { e.preventDefault(); stepSet(1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); stepSet(-1); }
   });
-  $('gJoin').addEventListener('click', function () { joinGroup($('gCode').value); });
-  $('gCode').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); joinGroup(this.value); } });
+  $('gJoin').addEventListener('click', groupAction);
+  ['gCode', 'gPass', 'gPass2'].forEach(function (id) {
+    $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); groupAction(); } });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=gRole]'), function (r) {
+    r.addEventListener('change', function () { renderGroupDlg(); if (roleChoice() === 'editor') $('gPass').focus(); });
+  });
+  $('gRole').addEventListener('click', function () {
+    if (db.role === 'editor') { setRole('musico'); renderGroupDlg(); toast('Este aparelho agora está como músico.'); return; }
+    dlgMode = 'becomeEditor';
+    $('gMsg').textContent = '';
+    renderGroupDlg();
+    $('gPass').focus();
+  });
+  $('gChangePw').addEventListener('click', function () {
+    dlgMode = 'changePassword';
+    $('gPass').value = ''; $('gPass2').value = ''; $('gMsg').textContent = '';
+    renderGroupDlg();
+    $('gPass').focus();
+  });
   $('gLeave').addEventListener('click', function () { if (leaveGroup(false)) { $('groupDlg').close(); toast('Você saiu do grupo.'); } });
   $('gClose').addEventListener('click', function () { $('groupDlg').close(); });
   window.addEventListener('online', function () { if (inGroup() && !Cloud.connected()) connectGroup(); });
@@ -1516,6 +1654,7 @@
 
   fillForm(); renderList(); render();
   showCloud();
+  document.body.classList.toggle('role-musico', !canEdit());
   // guarda o próprio Cifrador no aparelho para abrir mesmo sem internet
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('sw.js').catch(function () { /* sem modo offline */ });

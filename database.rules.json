@@ -16,6 +16,9 @@
             ".validate": "newData.hasChildren(['nome', 'updated']) && newData.child('nome').isString() && newData.child('nome').val().length <= 120 && newData.child('updated').isNumber() && $id.length <= 40"
           }
         },
+        "editor": {
+          ".validate": "newData.isString() && newData.val().length === 64"
+        },
         "$outro": {
           ".validate": "$outro === 'palco'"
         }
