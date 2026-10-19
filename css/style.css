@@ -464,3 +464,27 @@ body.role-musico .pane.editor, body.role-musico .palette, body.role-musico .pv-t
 .st-player-bar a { color: var(--st-muted); }
 #stage .st-player-bar button { padding: 5px 10px; font-size: 13px; }
 #stage .st-opts[hidden] { display: none; }
+
+/* ---------- áudio de ensaio no palco ---------- */
+#stage .st-aud { color: var(--st-ink); }
+#stage .st-aud.has { background: #24C7A6; border-color: #24C7A6; color: #0b1f1c; }
+#stage .st-aud[aria-pressed=true] { box-shadow: 0 0 0 2px var(--st-ink); }
+.st-audio { flex: none; background: var(--st-bar); border-bottom: 1px solid var(--st-rule); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; color: var(--st-ink); font-size: 14px; }
+.st-audio[hidden], .st-audio [hidden] { display: none; }
+.st-audio p { margin: 0; }
+.au-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#stage .st-audio button { padding: 7px 11px; border-radius: 8px; }
+#stage .st-audio .au-primary { background: #24C7A6; border-color: #24C7A6; color: #0b1f1c; font-weight: 700; }
+#stage .st-audio .au-play { width: 46px; height: 46px; padding: 0; border-radius: 50%; font-size: 18px; background: #24C7A6; border-color: #24C7A6; color: #0b1f1c; }
+#auSeek { flex: 1; min-width: 120px; accent-color: #24C7A6; }
+.au-time { font-variant-numeric: tabular-nums; color: var(--st-muted); font-size: 13px; min-width: 86px; text-align: right; }
+.au-lbl { color: var(--st-muted); font-size: 13px; }
+.au-sp { margin-left: 8px; }
+#auPitch { min-width: 72px; text-align: center; font-weight: 700; }
+#auPitch.on { color: #d0822d; }
+.au-speeds { display: inline-flex; gap: 4px; }
+#stage .au-speeds button[aria-pressed=true] { border-color: var(--st-ink); font-weight: 700; }
+.au-warn { color: #d0822d; font-size: 12px; }
+.au-foot small { flex: 1; min-width: 0; color: var(--st-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.au-msg { color: var(--st-muted); font-size: 13px; min-height: 0; }
+.au-msg:empty { display: none; }

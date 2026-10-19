@@ -12,6 +12,7 @@ Abra o `index.html` no navegador, ou publique a pasta pelo GitHub Pages (Setting
 - **Anotações para os músicos**: comece a linha com `>`, por exemplo `> Bumbo em colcheia, cresce`. Também vale na linha do nome da seção (`[Final] > Somente guitarra`) e no fim de uma linha de acordes (`Bm  G  A > vem crescendo`). Vários `>` na mesma linha viram anotações separadas, lado a lado (`> Banda suave > Teclado 1 - Pad`). Uma seção repetida pode trazer só o nome e as anotações daquela vez.
 - **Modo palco**: a cifra limpa para tocar pelo celular, com cada seção numa faixa azul de ponta a ponta, anotações em destaque logo abaixo e cores claras ou escuras. No celular, tocar em uma música na lista abre esse modo; no computador, use o botão "Modo palco".
 - **YouTube**: no editor, o campo "Link do YouTube" guarda o vídeo da música (aceita links com tempo de início, como `?t=42`). No modo palco, o botão ▶ abre o vídeo no topo da tela, com a cifra rolando embaixo.
+- **Áudio de ensaio**: no modo palco, o botão ♪ guarda um arquivo de áudio da música (MP3, M4A ou WAV) só naquele aparelho e o toca com controle de tom (meio em meio tom, até 3 tons) e velocidade (75%, 90%, 100%), sem um alterar o outro. Funciona sem internet. O tom e a velocidade voltam ao original ao recarregar a página.
 - **Repertórios**: na lista, a aba "Repertórios" monta a sequência de músicas de um culto ou ensaio (nome, data e ordem). "Tocar" abre o modo palco com os botões de música anterior e próxima; pedais de virar página que enviam as setas ← → também funcionam. No grupo, todos veem os mesmos repertórios.
 - **Paleta de acordes**: escolhido o tom, a folha mostra o campo harmônico (tríades ou tétrades), os empréstimos do tom homônimo e os dominantes secundários. Arraste o acorde até a letra, ou clique na letra e depois no acorde. Acordes já colocados podem ser arrastados, trocados, movidos com as setas e apagados com `Delete`.
 - **Transposição**: no editor, os botões −½ tom e +½ tom alteram a música para todos. No modo palco, a transposição vale só naquele aparelho e volta ao tom original ao recarregar a página.
@@ -44,4 +45,7 @@ Quem tem o código pode ver, editar e excluir as músicas do grupo; faça um "Ba
 - `js/config.js` — configuração pública do projeto Firebase
 - `sw.js` — guarda o app no aparelho para abrir sem internet
 - `database.rules.json` — regras de acesso do banco
+- `js/audio.js` — áudio de ensaio: arquivos no aparelho e player com tom e velocidade
+- `js/vendor/soundtouch.js` — SoundTouchJS 0.3.0 (LGPL-2.1, licença em `soundtouch-LICENSE.txt`)
 - `tests/music.test.js` — testes do motor musical (`node tests/music.test.js`)
+- `tests/audio.test.js` — confere tom e velocidade do áudio (`node tests/audio.test.js`)

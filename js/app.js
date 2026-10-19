@@ -528,6 +528,7 @@
     body.style.setProperty('--cf', FONTS[song.opts.font] || FONTS.sans);
     $('stTitle').textContent = song.title || 'Sem título';
     renderPlayer(song);
+    renderAudio(song);
     $('stKey').textContent = view.key || '—';
     $('stKey').hidden = !view.key && !view.shift;
     $('stKey').classList.toggle('shifted', !!view.shift);
@@ -633,9 +634,91 @@
     $('stYtLink').href = 'https://www.youtube.com/watch?v=' + info.id + (info.start ? '&t=' + info.start + 's' : '');
   }
 
+  /* ---------- áudio de ensaio (arquivo guardado no aparelho, com tom e velocidade) ---------- */
+
+  var AR = window.AudioRehearsal, audioIds = {}, audioShown = '', audioLoaded = '', audioLoading = '';
+  var audioPrefs = {}, seeking = false;   // tom e velocidade por música, só até recarregar a página
+  if (AR && AR.supported()) AR.store.keys().then(function (k) { k.forEach(function (id) { audioIds[id] = 1; }); if (stageOn) renderAudio(cur()); }, function () {});
+
+  function fmtTime(t) { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ':' + ('0' + t % 60).slice(-2); }
+  function prefs(id) { return audioPrefs[id] || (audioPrefs[id] = { pitch: 0, speed: 1 }); }
+  function auMsg(t) { $('auMsg').textContent = t || ''; }
+
+  function stopAudio() {
+    if (AR) AR.stop();
+    audioLoaded = '';
+    $('auPlay').textContent = '▶';
+  }
+  function renderAudio(song) {
+    var btnA = $('stAudio');
+    if (!AR || !AR.supported()) { btnA.hidden = true; return; }
+    if (audioShown && audioShown !== song.id) { audioShown = ''; stopAudio(); }   // trocou de música
+    if (audioLoaded && audioLoaded !== song.id) stopAudio();
+    var has = !!audioIds[song.id], open = audioShown === song.id;
+    btnA.classList.toggle('has', has);
+    btnA.setAttribute('aria-pressed', open);
+    $('stAudioPanel').hidden = !open;
+    if (!open) return;
+    $('auEmpty').hidden = has;
+    $('auFull').hidden = !has;
+    var pr = prefs(song.id);
+    $('auPitch').textContent = pr.pitch ? shiftLabel(pr.pitch) : 'Original';
+    $('auPitch').classList.toggle('on', !!pr.pitch);
+    $('auWarn').hidden = Math.abs(pr.pitch) <= 3;
+    Array.prototype.forEach.call(document.querySelectorAll('#auSpeeds button'), function (b) {
+      b.setAttribute('aria-pressed', Number(b.getAttribute('data-speed')) === pr.speed);
+    });
+    if (has && audioLoaded !== song.id && audioLoading !== song.id) loadAudio(song.id);
+  }
+  function loadAudio(id) {
+    audioLoading = id;
+    auMsg('Carregando o áudio…');
+    AR.store.get(id).then(function (rec) {
+      if (!rec) { delete audioIds[id]; audioLoading = ''; auMsg(''); renderAudio(cur()); return; }
+      $('auName').textContent = rec.name || 'Áudio';
+      return AR.load(rec.blob, prefs(id)).then(function () {
+        if (audioLoading !== id) return;
+        audioLoading = '';
+        audioLoaded = id;
+        auMsg('');
+      });
+    }).catch(function () {
+      audioLoading = '';
+      auMsg('Não foi possível abrir este arquivo de áudio. Tente outro formato (MP3 ou M4A).');
+    });
+  }
+  function toggleAudioPanel() {
+    var id = cur().id;
+    if (audioShown === id) { audioShown = ''; stopAudio(); }
+    else { audioShown = id; ytShown = ''; renderPlayer(cur()); }   // um player por vez
+    auMsg('');
+    renderAudio(cur());
+  }
+  function pickedAudio(file) {
+    var id = cur().id;
+    if (!file) return;
+    if (!/^audio\//.test(file.type) && !/\.(mp3|m4a|wav|ogg|aac)$/i.test(file.name)) { auMsg('Escolha um arquivo de áudio (MP3, M4A ou WAV).'); return; }
+    stopAudio();
+    auMsg('Guardando no aparelho…');
+    AR.store.put({ id: id, name: file.name, type: file.type, size: file.size, blob: file, saved: Date.now() }).then(function () {
+      audioIds[id] = 1;
+      auMsg('');
+      renderAudio(cur());
+    }, function () { auMsg('Não foi possível guardar o áudio neste aparelho (pode faltar espaço).'); });
+  }
+  if (AR) {
+    AR.on('time', function (t) {
+      if (!seeking) $('auSeek').value = t.duration ? Math.round(1000 * t.time / t.duration) : 0;
+      $('auTime').textContent = fmtTime(t.time) + ' / ' + fmtTime(t.duration);
+    });
+    AR.on('state', function (on) { $('auPlay').textContent = on ? '❚❚' : '▶'; $('auPlay').setAttribute('aria-label', on ? 'Pausar' : 'Tocar'); });
+  }
+
   function closeStage(fromHistory) {
     if (!stageOn) return;
     ytShown = '';
+    audioShown = '';
+    stopAudio();
     renderPlayer({ youtube: '' });
     stageOn = false;
     document.body.classList.remove('stage-on');
@@ -1630,7 +1713,39 @@
   function setTheme(t) { stagePrefs().theme = t; save(); renderStage(); }
   $('stYt').addEventListener('click', function () {
     ytShown = ytShown === cur().id ? '' : cur().id;
+    if (ytShown && audioShown) { audioShown = ''; stopAudio(); renderAudio(cur()); }   // um player por vez
     renderPlayer(cur());
+  });
+  $('stAudio').addEventListener('click', toggleAudioPanel);
+  ['auClose1', 'auClose2'].forEach(function (id) { $(id).addEventListener('click', toggleAudioPanel); });
+  ['auPick', 'auChange'].forEach(function (id) { $(id).addEventListener('click', function () { $('auFile').click(); }); });
+  $('auFile').addEventListener('change', function () { pickedAudio(this.files[0]); this.value = ''; });
+  $('auRemove').addEventListener('click', function () {
+    var id = cur().id;
+    if (!window.confirm('Remover o áudio desta música deste aparelho?')) return;
+    stopAudio();
+    AR.store.remove(id).then(function () { delete audioIds[id]; renderAudio(cur()); });
+  });
+  $('auPlay').addEventListener('click', function () {
+    if (!AR.loaded()) return;
+    if (AR.playing()) AR.pause(); else AR.play();
+  });
+  $('auSeek').addEventListener('input', function () { seeking = true; });
+  $('auSeek').addEventListener('change', function () { seeking = false; AR.seek(this.value / 1000); });
+  function auPitch(d) {
+    var pr = prefs(cur().id);
+    pr.pitch = Math.max(-6, Math.min(6, pr.pitch + d));
+    AR.setPitch(pr.pitch);
+    renderAudio(cur());
+  }
+  $('auDown').addEventListener('click', function () { auPitch(-1); });
+  $('auUp').addEventListener('click', function () { auPitch(1); });
+  $('auSpeeds').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    prefs(cur().id).speed = Number(b.getAttribute('data-speed'));
+    AR.setSpeed(prefs(cur().id).speed);
+    renderAudio(cur());
   });
   $('stYtClose').addEventListener('click', function () { ytShown = ''; renderPlayer(cur()); });
   $('stLight').addEventListener('click', function () { setTheme('light'); });

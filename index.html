@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Cifrador</title>
-  <link rel="stylesheet" href="css/style.css?v=20261019e">
+  <link rel="prefetch" href="js/vendor/soundtouch.js?v=0.3.0" as="script">
+  <link rel="stylesheet" href="css/style.css?v=20261019f">
 </head>
 <body data-tab="view">
 
@@ -182,6 +183,7 @@
     <div id="stTitle" class="st-title"></div>
     <span id="stKey" class="st-key" title="Tom"></span>
     <button type="button" id="stYt" class="st-opts st-yt" aria-label="Ouvir no YouTube" title="Ouvir no YouTube" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></button>
+    <button type="button" id="stAudio" class="st-opts st-aud" aria-label="Áudio de ensaio (tom e velocidade)" title="Áudio de ensaio: tom e velocidade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l11-2.5v11.2a3 3 0 1 1-2-2.8V7.1l-7 1.6v8.8a3 3 0 1 1-2-2.8z"/></svg></button>
     <button type="button" id="stMore" class="st-opts" aria-label="Cores, tamanho da letra e tom" title="Cores, tamanho da letra e tom"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></button>
   </header>
   <div id="stMenu" class="st-menu" hidden>
@@ -205,6 +207,33 @@
   <div id="stPlayer" class="st-player" hidden>
     <div class="st-video" id="stVideo"></div>
     <div class="st-player-bar"><a id="stYtLink" target="_blank" rel="noopener">Abrir no YouTube</a><button type="button" id="stYtClose">Fechar vídeo</button></div>
+  </div>
+  <div id="stAudioPanel" class="st-audio" hidden>
+    <div id="auEmpty" class="au-empty">
+      <p>Escolha um arquivo de áudio desta música (MP3, M4A ou WAV). Ele fica guardado só neste aparelho e funciona sem internet.</p>
+      <div class="au-row"><button type="button" id="auPick" class="au-primary">Escolher arquivo</button><button type="button" id="auClose1">Fechar</button></div>
+    </div>
+    <div id="auFull" hidden>
+      <div class="au-row">
+        <button type="button" id="auPlay" class="au-play" aria-label="Tocar">▶</button>
+        <input id="auSeek" type="range" min="0" max="1000" value="0" aria-label="Posição na música">
+        <span id="auTime" class="au-time">0:00 / 0:00</span>
+      </div>
+      <div class="au-row au-ctl">
+        <span class="au-lbl">Tom</span>
+        <button type="button" id="auDown" aria-label="Descer meio tom">−½</button>
+        <output id="auPitch">Original</output>
+        <button type="button" id="auUp" aria-label="Subir meio tom">+½</button>
+        <span class="au-lbl au-sp">Velocidade</span>
+        <span class="au-speeds" id="auSpeeds">
+          <button type="button" data-speed="0.75">75%</button><button type="button" data-speed="0.9">90%</button><button type="button" data-speed="1">100%</button>
+        </span>
+      </div>
+      <p id="auWarn" class="au-warn" hidden>Acima de 1½ tom de diferença a qualidade do som pode cair.</p>
+      <div class="au-row au-foot"><small id="auName"></small><button type="button" id="auChange">Trocar</button><button type="button" id="auRemove">Remover</button><button type="button" id="auClose2">Fechar</button></div>
+    </div>
+    <p id="auMsg" class="au-msg" role="status"></p>
+    <input id="auFile" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden>
   </div>
   <nav id="stNav" class="st-nav" aria-label="Seções da música"></nav>
   <div id="stBody" class="st-body cifra"></div>
@@ -263,9 +292,10 @@
 <div id="toast" role="status" aria-live="polite"></div>
 <input id="file" type="file" hidden multiple accept=".txt,.cho,.chopro,.chordpro,.crd,.pro,.json,text/plain,application/json">
 
-<script src="js/config.js?v=20261019e"></script>
-<script src="js/music.js?v=20261019e"></script>
-<script src="js/cloud.js?v=20261019e"></script>
-<script src="js/app.js?v=20261019e"></script>
+<script src="js/config.js?v=20261019f"></script>
+<script src="js/music.js?v=20261019f"></script>
+<script src="js/cloud.js?v=20261019f"></script>
+<script src="js/audio.js?v=20261019f"></script>
+<script src="js/app.js?v=20261019f"></script>
 </body>
 </html>
