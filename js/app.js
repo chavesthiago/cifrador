@@ -371,6 +371,16 @@
     if (title) b.title = title;
     return b;
   }
+  // Ordem dos acordes: C D E F G A B; na mesma letra, natural, depois # e b; depois o restante do nome.
+  function chordOrder(a, b) {
+    function key(c) {
+      var m = /^([A-G])([#b♯♭]?)(.*)$/.exec(c) || [c, 'Z', '', c];
+      return ['CDEFGAB'.indexOf(m[1]), { '': 0, '#': 1, '♯': 1, 'b': 2, '♭': 2 }[m[2]] || 0, m[3]];
+    }
+    var x = key(a), y = key(b);
+    return (x[0] - y[0]) || (x[1] - y[1]) || x[2].localeCompare(y[2], 'en', { numeric: true });
+  }
+
   function renderPalette() {
     var s = cur(), box = $('palGroups');
     var key = s.key.trim() || Music.firstChord(s.text);
@@ -391,7 +401,8 @@
     } else {
       box.appendChild(el('div', 'pal-empty', 'Preencha o Tom da música para ver o campo harmônico.'));
     }
-    var others = s.extra.concat(Music.chordsUsed(s.text)).filter(function (c, i, a) { return !known[c] && a.indexOf(c) === i; });
+    var others = s.extra.concat(Music.chordsUsed(s.text)).filter(function (c, i, a) { return !known[c] && a.indexOf(c) === i; })
+      .sort(chordOrder);
     group('others', 'Outros desta música', others.map(function (c) { return { name: c, degree: '' }; }));
   }
 
