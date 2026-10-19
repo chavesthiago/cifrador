@@ -126,23 +126,35 @@
   }
 
   // Linha com anotação no fim dos acordes: a anotação fica à direita, na altura dos acordes.
+  // "> Banda suave > Teclado 1 - Pad": cada ">" vira uma anotação separada.
+  function memoParts(text) {
+    return String(text || '').split('>').map(function (t) { return t.trim(); }).filter(Boolean);
+  }
+  function memoEl(text, o, cls) {
+    var parts = memoParts(text);
+    if (!o.plain) return el(cls === 'side' ? 'span' : 'div', cls === 'side' ? 'memo side' : 'line memo', parts.join('  ·  '));
+    var row = el('div', 'line memo-row');   // modo palco: uma faixa para cada anotação, lado a lado
+    parts.forEach(function (t) { row.appendChild(el('span', 'memo', t)); });
+    return row;
+  }
+
   function lineEl(l, o) {
     var core = lineCore(l, o);
     if (!l.memo || l.t === 'memo' || o.memos === 'hide') return core;
     if (o.plain) {   // modo palco: a anotação vira uma faixa acima da linha
       var box = el('div', 'line-memo');
-      box.appendChild(el('div', 'line memo', l.memo));
+      box.appendChild(memoEl(l.memo, o));
       box.appendChild(core);
       return box;
     }
     var row = el('div', 'line-row');
     row.appendChild(core);
-    row.appendChild(el('span', 'memo side', l.memo));
+    row.appendChild(memoEl(l.memo, o, 'side'));
     return row;
   }
 
   function lineCore(l, o) {
-    if (l.t === 'memo') return el('div', 'line memo', l.text);
+    if (l.t === 'memo') return memoEl(l.text, o);
     if (l.t === 'pair') {
       var line = el('div', 'line pair'), end = 0;
       l.words.forEach(function (w) {
