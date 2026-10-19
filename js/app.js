@@ -132,9 +132,15 @@
   }
   function memoEl(text, o, cls) {
     var parts = memoParts(text);
-    if (!o.plain) return el(cls === 'side' ? 'span' : 'div', cls === 'side' ? 'memo side' : 'line memo', parts.join('  ·  '));
+    if (!o.plain) return el(cls === 'side' ? 'span' : 'div', cls === 'side' ? 'memo side' : 'line memo',
+      parts.map(function (t) { return t.replace('\\', ''); }).join('  ·  '));
     var row = el('div', 'line memo-row');   // modo palco: uma faixa para cada anotação, lado a lado
-    parts.forEach(function (t) { row.appendChild(el('span', 'memo', t)); });
+    parts.forEach(function (t) {
+      // no palco a anotação sai em maiúsculas; depois de "\" o texto fica como foi digitado
+      var i = t.indexOf('\\'), chip = el('span', 'memo', i < 0 ? t : t.slice(0, i));
+      if (i >= 0) chip.appendChild(el('span', 'as-typed', t.slice(i + 1)));
+      row.appendChild(chip);
+    });
     return row;
   }
 

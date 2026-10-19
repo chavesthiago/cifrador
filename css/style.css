@@ -302,6 +302,7 @@ button:disabled { opacity: .45; cursor: default; }
 .st-rule { flex: 1; height: 1px; background: var(--st-rule); }
 .st-para { padding-bottom: 1.3em; }
 /* anotações no modo palco: faixa com barra à esquerda, logo abaixo da seção */
+.st-body .memo .as-typed { text-transform: none; letter-spacing: .02em; }
 .st-body .memo-row { display: flex; flex-wrap: wrap; gap: .45em; margin: .1em 0 .55em; }
 .st-body .memo { display: inline-block; text-align: left; margin: 0; padding: .4em .85em .4em .75em; background: #123D3B; color: #68E0D2; border-left: 4px solid #24C7A6; border-radius: 6px; font-size: .7em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; line-height: 1.3; }
 .st-body .ch { padding-top: .25em; }
