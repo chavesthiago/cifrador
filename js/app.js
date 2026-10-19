@@ -129,6 +129,12 @@
   function lineEl(l, o) {
     var core = lineCore(l, o);
     if (!l.memo || l.t === 'memo' || o.memos === 'hide') return core;
+    if (o.plain) {   // modo palco: a anotação vira uma faixa acima da linha
+      var box = el('div', 'line-memo');
+      box.appendChild(el('div', 'line memo', l.memo));
+      box.appendChild(core);
+      return box;
+    }
     var row = el('div', 'line-row');
     row.appendChild(core);
     row.appendChild(el('span', 'memo side', l.memo));
@@ -558,7 +564,7 @@
       });
       body.appendChild(sec);
     });
-    nav.hidden = !nav.firstChild;
+    nav.hidden = true;   // sem atalhos de seção: cada seção tem a sua faixa
     renderSetBar();
     body.scrollTop = keep;
     spyStage();

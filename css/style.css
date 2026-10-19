@@ -228,7 +228,7 @@ button:disabled { opacity: .45; cursor: default; }
 .cifra .line-row { display: flex; align-items: flex-start; gap: 1em; }
 .cifra .line-row > .line { flex: 1; min-width: 0; }
 .cifra .memo.side { flex: none; max-width: 45%; }
-.st-body .memo.side { padding-top: .35em; }
+
 .cifra .notes::before { content: "♪ "; font-style: normal; }
 
 /* ---------- modo palco ---------- */
@@ -293,13 +293,15 @@ button:disabled { opacity: .45; cursor: default; }
 .st-sw[data-c=green] { --sw: var(--c-green); } .st-sw[data-c=red] { --sw: var(--c-red); } .st-sw[data-c=orange] { --sw: var(--c-orange); } .st-sw[data-c=purple] { --sw: var(--c-purple); }
 .st-body > * { max-width: 760px; margin-left: auto; margin-right: auto; }
 .st-info { color: var(--st-muted); font-size: .8em; padding-bottom: .6em; }
-.st-sec { padding-bottom: 1.5em; }
-.st-head { display: flex; align-items: center; gap: .6em; padding-bottom: .5em; }
-.st-badge { width: 1.9em; height: 1.9em; font-size: .72em; }
-.st-label { font-size: .82em; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.st-sec { padding-bottom: .3em; }
+/* faixa da seção no modo palco, de ponta a ponta */
+.st-head { display: flex; align-items: center; justify-content: center; margin: 0 -18px .7em; padding: .45em 1em; background: #0F3B5F; }
+.st-head .st-badge, .st-head .st-rule { display: none; }
+.st-label { font-size: .9em; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #73D0FF; text-align: center; }
 .st-rule { flex: 1; height: 1px; background: var(--st-rule); }
 .st-para { padding-bottom: 1.3em; }
-.st-body .memo { color: var(--st-muted); font-size: .8em; }
+/* anotações no modo palco: faixa com barra à esquerda, logo abaixo da seção */
+.st-body .memo { display: table; text-align: left; margin: .1em 0 .55em; padding: .4em .85em .4em .75em; background: #123D3B; color: #68E0D2; border-left: 4px solid #24C7A6; border-radius: 6px; font-size: .7em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; line-height: 1.3; }
 .st-body .ch { padding-top: .25em; }
 body.stage-on > .topbar, body.stage-on > .tabs, body.stage-on > .app { visibility: hidden; }
 
