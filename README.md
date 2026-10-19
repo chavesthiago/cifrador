@@ -16,6 +16,7 @@ Abra o `index.html` no navegador, ou publique a pasta pelo GitHub Pages (Setting
 - **Repertórios**: na lista, a aba "Repertórios" monta a sequência de músicas de um culto ou ensaio (nome, data e ordem). "Tocar" abre o modo palco com os botões de música anterior e próxima; pedais de virar página que enviam as setas ← → também funcionam. No grupo, todos veem os mesmos repertórios.
 - **Paleta de acordes**: escolhido o tom, a folha mostra o campo harmônico (tríades ou tétrades), os empréstimos do tom homônimo e os dominantes secundários. Arraste o acorde até a letra, ou clique na letra e depois no acorde. Acordes já colocados podem ser arrastados, trocados, movidos com as setas e apagados com `Delete`.
 - **Transposição**: no editor, os botões −½ tom e +½ tom alteram a música para todos. No modo palco, a transposição vale só naquele aparelho e volta ao tom original ao recarregar a página.
+- **Trocar acorde**: no editor, o botão "Trocar acorde" troca um acorde por outro em toda a música (ex.: `Cmaj9` por `C(9)`), só nas linhas de acordes; letra e anotações não mudam. Dá para desfazer.
 - **Ajuste fino**: com o cursor sobre um acorde, `Alt` + `←` / `→` move o acorde uma casa.
 - **Folha**: A4 em 1 ou 2 colunas, tamanho da letra, margem, cor dos acordes e o botão "Caber em 1 página".
 - **Importar**: letra em `.txt`, cifra em ChordPro (`.cho`) ou backup (`.json`).

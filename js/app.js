@@ -1569,6 +1569,40 @@
       nudge(e.key === 'ArrowLeft' ? -1 : 1);
     }
   });
+  // Trocar um acorde por outro em toda a música (ex.: Cmaj9 → C(9)).
+  function openReplace() {
+    if (!canEdit()) return;
+    var list = Music.chordCounts(cur().text), sel0 = $('rFrom');
+    sel0.textContent = '';
+    list.forEach(function (c) {
+      var o = document.createElement('option');
+      o.value = c.name;
+      o.textContent = c.name + '  (' + c.count + (c.count === 1 ? ' vez)' : ' vezes)');
+      sel0.appendChild(o);
+    });
+    $('rMsg').textContent = list.length ? '' : 'Esta música ainda não tem acordes.';
+    $('rTo').value = '';
+    $('rOk').disabled = !list.length;
+    var dlg = $('repDlg');
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    if (list.length) $('rTo').focus();
+  }
+  function doReplace() {
+    var from = $('rFrom').value, to = $('rTo').value.trim(), msg = $('rMsg');
+    if (!from) return;
+    if (!to) { msg.textContent = 'Digite o acorde novo.'; $('rTo').focus(); return; }
+    if (/\s/.test(to) || !Music.isChord(to)) { msg.textContent = '"' + to + '" não parece um acorde. Exemplos: C(9), F#m7, Bb7M, D/F#.'; $('rTo').focus(); return; }
+    var r = Music.replaceChord(cur().text, from, to);
+    if (!r.count) { msg.textContent = 'Nada para trocar.'; return; }
+    commit(r.text);   // entra no "Desfazer" da paleta
+    $('repDlg').close();
+    toast(from + ' → ' + to + ': ' + r.count + (r.count === 1 ? ' troca.' : ' trocas.'));
+  }
+  $('btnReplace').addEventListener('click', openReplace);
+  $('rOk').addEventListener('click', doReplace);
+  $('rCancel').addEventListener('click', function () { $('repDlg').close(); });
+  $('rTo').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doReplace(); } });
+
   $('btnNudgeL').addEventListener('click', function () { $('text').focus(); if (!nudge(-1)) toast('Coloque o cursor sobre um acorde.'); });
   $('btnNudgeR').addEventListener('click', function () { $('text').focus(); if (!nudge(1)) toast('Coloque o cursor sobre um acorde.'); });
 

@@ -488,3 +488,7 @@ body.role-musico .pane.editor, body.role-musico .palette, body.role-musico .pv-t
 .au-foot small { flex: 1; min-width: 0; color: var(--st-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .au-msg { color: var(--st-muted); font-size: 13px; min-height: 0; }
 .au-msg:empty { display: none; }
+
+/* trocar acorde */
+.rep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+.rep-grid select, .rep-grid input { font-size: 16px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Cifrador</title>
   <link rel="prefetch" href="js/vendor/soundtouch.js?v=0.3.0" as="script">
-  <link rel="stylesheet" href="css/style.css?v=20261019f">
+  <link rel="stylesheet" href="css/style.css?v=20261019g">
 </head>
 <body data-tab="view">
 
@@ -63,6 +63,7 @@
       <div class="group extra-tool" aria-label="Mover acorde">
         <button type="button" id="btnNudgeL" title="Mover o acorde sob o cursor uma casa para a esquerda (Alt + ←)">◀ acorde</button>
         <button type="button" id="btnNudgeR" title="Mover o acorde sob o cursor uma casa para a direita (Alt + →)">acorde ▶</button>
+        <button type="button" id="btnReplace" title="Trocar um acorde por outro em toda a música">Trocar acorde</button>
       </div>
       <div class="group extra-tool" aria-label="Transpor">
         <button type="button" id="btnDown" title="Descer meio tom">−½ tom</button>
@@ -288,14 +289,32 @@
   </div>
 </dialog>
 
+<dialog id="repDlg" class="dlg" aria-labelledby="rTitle">
+  <h2 id="rTitle">Trocar acorde em toda a música</h2>
+  <p>Troca o acorde em todas as linhas de acordes. A letra e as anotações não mudam.</p>
+  <div class="rep-grid">
+    <label class="dlg-field">Trocar
+      <select id="rFrom"></select>
+    </label>
+    <label class="dlg-field">por
+      <input id="rTo" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex.: C(9)">
+    </label>
+  </div>
+  <p id="rMsg" class="dlg-msg" role="status"></p>
+  <div class="dlg-actions">
+    <button type="button" id="rCancel">Cancelar</button>
+    <button type="button" id="rOk" class="primary">Trocar</button>
+  </div>
+</dialog>
+
 <div id="measure" class="cifra" aria-hidden="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input id="file" type="file" hidden multiple accept=".txt,.cho,.chopro,.chordpro,.crd,.pro,.json,text/plain,application/json">
 
-<script src="js/config.js?v=20261019f"></script>
-<script src="js/music.js?v=20261019f"></script>
-<script src="js/cloud.js?v=20261019f"></script>
-<script src="js/audio.js?v=20261019f"></script>
-<script src="js/app.js?v=20261019f"></script>
+<script src="js/config.js?v=20261019g"></script>
+<script src="js/music.js?v=20261019g"></script>
+<script src="js/cloud.js?v=20261019g"></script>
+<script src="js/audio.js?v=20261019g"></script>
+<script src="js/app.js?v=20261019g"></script>
 </body>
 </html>

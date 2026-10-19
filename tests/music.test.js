@@ -201,4 +201,15 @@ const yt = M.toChordPro({ title: 'T', artist: '', key: '', capo: '', tempo: '', 
 assert(/\{x_youtube: https:\/\/youtu.be\/dQw4w9WgXcQ\}/.test(yt));
 assert.strictEqual(M.fromChordPro(yt).youtube, 'https://youtu.be/dQw4w9WgXcQ');
 
+// trocar um acorde em toda a música
+const rc = M.replaceChord('[Verso]\nCmaj9   G   (Cmaj9\nletra com Cmaj9 na letra\nAm  Cmaj9 > Cmaj9 na anotação\nmais\nC  Cmaj9/E', 'Cmaj9', 'C(9)');
+assert.strictEqual(rc.count, 3);
+assert.strictEqual(rc.text.split('\n')[1], 'C(9)    G   (C(9)');
+assert.strictEqual(rc.text.split('\n')[2], 'letra com Cmaj9 na letra');
+assert.strictEqual(rc.text.split('\n')[3], 'Am  C(9)  > Cmaj9 na anotação');
+assert.strictEqual(rc.text.split('\n')[5], 'C  Cmaj9/E');
+assert.strictEqual(M.replaceChord('G  D', 'Cmaj9', 'C').count, 0);
+assert.strictEqual(M.replaceChord('C#m7  Db\nx', 'C♯m7', 'C#m7(9)').text.split('\n')[0], 'C#m7(9) Db');
+assert.deepStrictEqual(M.chordCounts('G  D  G\nx\nEm  G > D').map(c => c.name + ':' + c.count), ['G:3', 'D:1', 'Em:1']);
+
 console.log('ok — todos os testes passaram');

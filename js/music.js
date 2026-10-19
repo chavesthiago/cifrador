@@ -108,6 +108,47 @@
     return out;
   }
 
+  // Nome do acorde sem os parênteses soltos: "(Cmaj9" e "Cmaj9)" contam como "Cmaj9".
+  function chordName(tok) {
+    var c = parseChord(tok);
+    return c ? normAcc(c.root) + c.quality + (c.bass ? '/' + normAcc(c.bass) : '') : '';
+  }
+  // Troca um acorde por outro em toda a música (só nas linhas de acordes; letra e anotações ficam iguais).
+  function replaceChord(text, from, to) {
+    var count = 0, want = chordName(from);
+    if (!want) return { text: text, count: 0 };
+    var out = normalizeText(text).split('\n').map(function (line) {
+      if (classify(line) !== 'chords') return line;
+      return mapChordPart(line, function (part) {
+        var res = '', re = /\S+/g, m;
+        while ((m = re.exec(part))) {
+          var tok = m[0], c = parseChord(tok);
+          if (c && chordName(tok) === want) { tok = c.pre + to + c.suf; count++; }
+          var col = m.index;
+          if (res.length && res.length >= col) col = res.length + 1;
+          while (res.length < col) res += ' ';
+          res += tok;
+        }
+        return res;
+      });
+    }).join('\n');
+    return { text: out, count: count };
+  }
+  // Quantas vezes cada acorde aparece na música, na ordem em que aparece.
+  function chordCounts(text) {
+    var order = [], n = {};
+    normalizeText(text).split('\n').forEach(function (line) {
+      if (classify(line) !== 'chords') return;
+      chordPart(line).trim().split(/\s+/).forEach(function (t) {
+        var k = chordName(t);
+        if (!k) return;
+        if (!n[k]) { n[k] = 0; order.push(k); }
+        n[k]++;
+      });
+    });
+    return order.map(function (k) { return { name: k, count: n[k] }; });
+  }
+
   /* ---------- notas (frases de solo) ---------- */
 
   function parseNote(tok) {
@@ -538,7 +579,7 @@
   }
 
   var api = {
-    youtubeInfo: youtubeInfo,
+    youtubeInfo: youtubeInfo, replaceChord: replaceChord, chordCounts: chordCounts,
     isChord: isChord, isChordLine: isChordLine, classify: classify, normalizeText: normalizeText,
     transposeChord: transposeChord, transposeChordLine: transposeChordLine,
     transposeNotes: transposeNotes, renderNotes: renderNotes,
